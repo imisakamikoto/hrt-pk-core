@@ -95,7 +95,13 @@ def _fat_symbols(data: bytes, out: set[str]) -> None:
             _, _, offset, size, _ = struct.unpack_from(">iiQQI", data, 8 + i * 32)
         else:
             _, _, offset, size = struct.unpack_from(">iiII", data, 8 + i * 20)
-        _thin_symbols(data[offset:offset + size], out)
+        slice_data = data[offset:offset + size]
+        # `lipo -create` on static libraries produces a fat file whose slices
+        # are themselves archives, so a universal .a needs both readers.
+        if slice_data.startswith(b"!<arch>\n"):
+            _archive_symbols(slice_data, out)
+        else:
+            _thin_symbols(slice_data, out)
 
 
 def _archive_symbols(data: bytes, out: set[str]) -> None:
