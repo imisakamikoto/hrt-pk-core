@@ -127,9 +127,14 @@ jobs:
         run: cargo install cargo-ndk --locked
 
       - name: Build
-        env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
         run: |
+          # The runner exports ANDROID_NDK_LATEST_HOME; cargo-ndk also accepts
+          # ANDROID_NDK_HOME. Fall back to the first NDK under the SDK.
+          export ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-${ANDROID_NDK_LATEST_HOME:-}}"
+          if [ -z "$ANDROID_NDK_HOME" ]; then
+            export ANDROID_NDK_HOME="$(ls -d "$ANDROID_HOME"/ndk/* 2>/dev/null | tail -1)"
+          fi
+          echo "NDK: $ANDROID_NDK_HOME"
           cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o out/android build --release
           VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
           mkdir -p out/release

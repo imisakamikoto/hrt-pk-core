@@ -4,6 +4,11 @@
 
 **English** · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md)
 
+[![build](https://github.com/imisakamikoto/hrt-pk-core/actions/workflows/build.yml/badge.svg)](https://github.com/imisakamikoto/hrt-pk-core/actions/workflows/build.yml)
+[![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![ABI](https://img.shields.io/badge/ABI-2-informational)](docs/API.md)
+[![platforms](https://img.shields.io/badge/Android%20·%20iOS%20·%20Windows%20·%20macOS%20·%20Linux-lightgrey)](#install)
+
 An offline pharmacokinetic engine for estradiol and testosterone HRT, packaged
 as a small native library with a JSON-over-C ABI.
 
@@ -49,6 +54,16 @@ symbols are plain C, so anything with an FFI can call it.
 | Is there something in this record the model ignores? | `hrt_safety` |
 | Which estimate does the answer depend on? | `hrt_sensitivity` |
 | All of the above, without 12 FFI crossings. | `hrt_batch` |
+
+## Documentation
+
+| | |
+|---|---|
+| [API reference](docs/API.md) | Every function, every field, every error code |
+| [The model](docs/MODEL.md) | Equations, constants, and what is *not* modelled |
+| [Integration](docs/INTEGRATION.md) | Per-platform packaging, loading, memory and threading |
+| [Developing](docs/DEVELOPING.md) | Build, test, add a function, release |
+| [Changelog](CHANGELOG.md) | What changed between ABI versions |
 
 ## Quick start
 
@@ -194,6 +209,14 @@ The JSON field names match the storage and backup format of
 [Oyama's HRT Tracker](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker),
 including `doseMG` with capital letters, so a backup can be replayed without a
 translation layer. `ABI_VERSION` is bumped whenever a field changes meaning.
+
+## Related
+
+- **[Misaka hrt记录器](https://github.com/imisakamikoto/misaka-hrt-tracker)** — the
+  Android, iOS and Windows app this library was extracted from. It embeds the
+  core, keeps the data on the device, and is where the JSON shapes come from.
+- **[Oyama's HRT Tracker](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker)** —
+  the browser application whose model this is a port of.
 
 ## Licence
 

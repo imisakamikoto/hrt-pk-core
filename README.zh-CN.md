@@ -4,6 +4,11 @@
 
 [English](README.md) · **简体中文** · [繁體中文](README.zh-TW.md)
 
+[![build](https://github.com/imisakamikoto/hrt-pk-core/actions/workflows/build.yml/badge.svg)](https://github.com/imisakamikoto/hrt-pk-core/actions/workflows/build.yml)
+[![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![ABI](https://img.shields.io/badge/ABI-2-informational)](docs/API.md)
+[![platforms](https://img.shields.io/badge/Android%20·%20iOS%20·%20Windows%20·%20macOS%20·%20Linux-lightgrey)](#install)
+
 雌二醇与睾酮 HRT 的离线药代动力学引擎，打包成一个体积很小的原生库，通过  
 JSON-over-C 的 ABI 对外提供服务。
 
@@ -50,6 +55,16 @@ macOS 和 Linux 上，导出的是纯 C 符号，因此任何支持 FFI 的语�
 | 这份记录里有没有模型会忽略的东西？      | `hrt_safety`       |
 | 结论对哪一个估计值最敏感？          | `hrt_sensitivity`  |
 | 以上全部，但只跨一次 FFI 边界。     | `hrt_batch`        |
+
+## 文档
+
+| | |
+|---|---|
+| [API 参考](docs/API.md) | 每个函数、每个字段、每个错误码 |
+| [模型说明](docs/MODEL.md) | 公式、常数，以及**没有**建模的部分 |
+| [集成指南](docs/INTEGRATION.md) | 各平台的打包、加载、内存与线程 |
+| [开发指南](docs/DEVELOPING.md) | 构建、测试、新增函数、发布 |
+| [变更记录](CHANGELOG.md) | ABI 版本之间改了什么 |
 
 ## 快速开始
 
@@ -188,6 +203,14 @@ Bateman 表达式，三个房室是 `e^(−sτ)` 的二阶均差。没有步长�
 JSON 字段名与 [Oyama's HRT Tracker](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker)  
 的存储与备份格式一致，包括大写字母的 `doseMG`，因此备份可以直接回放，不需要  
 转换层。当某个字段的含义发生变化时，`ABI_VERSION` 会加一。
+
+## 相关项目
+
+- **[Misaka hrt记录器](https://github.com/imisakamikoto/misaka-hrt-tracker)** —
+  这个库被抽出来的 Android / iOS / Windows 应用。它内嵌内核，数据只留在设备上，
+  JSON 的形状也来自它。
+- **[Oyama's HRT Tracker](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker)** —
+  模型移植自的浏览器应用。
 
 ## 许可
 

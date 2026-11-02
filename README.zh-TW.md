@@ -4,6 +4,11 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md) · **繁體中文**
 
+[![build](https://github.com/imisakamikoto/hrt-pk-core/actions/workflows/build.yml/badge.svg)](https://github.com/imisakamikoto/hrt-pk-core/actions/workflows/build.yml)
+[![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![ABI](https://img.shields.io/badge/ABI-2-informational)](docs/API.md)
+[![platforms](https://img.shields.io/badge/Android%20·%20iOS%20·%20Windows%20·%20macOS%20·%20Linux-lightgrey)](#install)
+
 雌二醇與睪固酮 HRT 的離線藥代動力學引擎，打包成一個體積很小的原生函式庫，
 透過 JSON-over-C 的 ABI 對外提供服務。
 
@@ -186,6 +191,14 @@ Bateman 表達式，三個房室是 `e^(−sτ)` 的二階均差。沒有步長�
 JSON 欄位名稱與 [Oyama's HRT Tracker](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker)
 的儲存與備份格式一致，包括大寫字母的 `doseMG`，因此備份可以直接回放，不需要
 轉換層。當某個欄位的意義改變時，`ABI_VERSION` 會加一。
+
+## 相關專案
+
+- **[Misaka hrt记录器](https://github.com/imisakamikoto/misaka-hrt-tracker)** —
+  這個函式庫被抽出來的 Android / iOS / Windows 應用程式。它內嵌核心，資料只留在
+  裝置上，JSON 的形狀也來自它。
+- **[Oyama's HRT Tracker](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker)** —
+  模型移植自的瀏覽器應用程式。
 
 ## 授權
 
