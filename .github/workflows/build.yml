@@ -79,6 +79,17 @@ jobs:
             -output "out/hrt-core-$VERSION-macos-universal.dylib"
           lipo -info "out/hrt-core-$VERSION-macos-universal.dylib"
 
+      - name: Check the ABI is exported
+        run: |
+          python3 scripts/check_symbols.py out/*.dylib
+          # The header promises these; so does the binary. Also prove it links
+          # and answers through the C ABI, not just that names exist.
+          cc -Wall -Wextra -Iinclude examples/c/example.c \
+             -Ltarget/aarch64-apple-darwin/release -lhrt_core \
+             -Wl,-rpath,"$PWD/target/aarch64-apple-darwin/release" \
+             -o /tmp/example
+          /tmp/example
+
       - uses: actions/upload-artifact@v4
         with:
           name: macos
@@ -175,9 +186,11 @@ jobs:
           lipo -info out/*.a
 
       - name: Check the symbols survived the archive
-        run: |
-          nm -g target/aarch64-apple-ios/release/libhrt_core.a \
-            | grep -E "T _hrt_(simulate|plan_dose|free)$"
+        # Apple's nm is older than the LLVM that produced these objects, so it
+        # cannot read their DWARF and prints nothing at all. Read the Mach-O
+        # symbol table directly instead: scripts/check_symbols.py needs no
+        # debug info and works on archives, dylibs and fat binaries alike.
+        run: python3 scripts/check_symbols.py out/*.a
 
       - uses: actions/upload-artifact@v4
         with:

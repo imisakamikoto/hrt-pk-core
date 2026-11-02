@@ -83,6 +83,21 @@ This runs, in order:
 Every output lands in `dist/` with a predictable name, which is what the release
 workflow uploads.
 
+## Checking the ABI in a built artefact
+
+```bash
+python3 scripts/check_symbols.py dist/ios/*.a dist/macos/*.dylib
+```
+
+`check_symbols.py` reads the Mach-O load commands and symbol table directly and
+compares them against every `HRT_API` declaration in `include/hrt_core.h`, so a
+binary that quietly lost a symbol fails loudly. It exists because `nm` ships
+with the Xcode toolchain and is routinely older than the LLVM that built the
+objects: on those inputs `nm` refuses the DWARF and prints nothing, which looks
+exactly like "no symbols" to a `nm | grep` gate. The script needs no debug info,
+handles static archives (including BSD long member names), single images and fat
+binaries, and is what the `apple` and `macos` CI jobs run.
+
 ## Adding a function
 
 1. **Decide whether the answer belongs in Rust at all.** If it is presentation,

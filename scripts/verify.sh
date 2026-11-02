@@ -46,9 +46,19 @@ fi
 
 say "exported symbols"
 LIB=$(ls target/release/libhrt_core.{dylib,so} 2>/dev/null | head -1 || true)
-if [ -n "$LIB" ] && command -v nm >/dev/null 2>&1; then
-  nm -gU "$LIB" 2>/dev/null | grep -o 'hrt_[a-z_]*' | sort -u || \
-    nm -D "$LIB" | grep -o 'hrt_[a-z_]*' | sort -u
+if [ -n "$LIB" ]; then
+  case "$(uname -s)" in
+    Darwin)
+      # nm here is older than the rustc that produced $LIB; the script reads
+      # the symbol table itself. Same gate CI runs.
+      python3 scripts/check_symbols.py "$LIB"
+      ;;
+    *)
+      if command -v nm >/dev/null 2>&1; then
+        nm -D "$LIB" | grep -o 'hrt_[a-z_]*' | sort -u
+      fi
+      ;;
+  esac
 fi
 
 say "ok"
