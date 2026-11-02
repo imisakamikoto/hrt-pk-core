@@ -1,0 +1,20 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Build output
+/dist/
+*.ipa
+*.msi
+*.dmg
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Local overrides
+.env
+*.local

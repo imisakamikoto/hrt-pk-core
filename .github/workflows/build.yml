@@ -1,0 +1,215 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  linux:
+    name: Linux x64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --check
+
+      - name: Test
+        run: cargo test --release
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Prove the C ABI
+        run: |
+          cc -Wall -Wextra -Iinclude examples/c/example.c \
+             -Ltarget/release -lhrt_core -Wl,-rpath,"$PWD/target/release" \
+             -o /tmp/example
+          /tmp/example
+
+      - name: Prove the Python binding
+        run: |
+          HRT_CORE_LIB="$PWD/target/release/libhrt_core.so" \
+            python3 bindings/python/hrt_core.py
+
+      - name: Stage artifact
+        run: |
+          VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          mkdir -p out
+          cp target/release/libhrt_core.so "out/hrt-core-$VERSION-linux-x64.so"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: out/*
+
+  macos:
+    name: macOS universal
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin,aarch64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build both architectures
+        run: |
+          cargo build --release --target x86_64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin
+
+      - name: Fatten
+        run: |
+          VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          mkdir -p out
+          lipo -create \
+            target/x86_64-apple-darwin/release/libhrt_core.dylib \
+            target/aarch64-apple-darwin/release/libhrt_core.dylib \
+            -output "out/hrt-core-$VERSION-macos-universal.dylib"
+          lipo -info "out/hrt-core-$VERSION-macos-universal.dylib"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: out/*
+
+  windows:
+    name: Windows x64
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Test
+        run: cargo test --release
+
+      - name: Build and stage
+        run: |
+          cargo build --release
+          VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          mkdir -p out
+          cp target/release/hrt_core.dll "out/hrt-core-$VERSION-windows-x64.dll"
+          if [ -f target/release/hrt_core.dll.lib ]; then
+            cp target/release/hrt_core.dll.lib "out/hrt-core-$VERSION-windows-x64.dll.lib"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: out/*
+
+  android:
+    name: Android (3 ABIs)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - name: Build
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
+        run: |
+          cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o out/android build --release
+          VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          mkdir -p out/release
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            cp "out/android/$abi/libhrt_core.so" \
+               "out/release/hrt-core-$VERSION-android-$abi.so"
+          done
+          file out/release/*.so
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: out/release/*
+
+  apple:
+    name: iOS (device + simulator)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build archives
+        run: |
+          cargo build --release --target aarch64-apple-ios
+          cargo build --release --target aarch64-apple-ios-sim
+          cargo build --release --target x86_64-apple-ios
+          VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          mkdir -p out
+          cp target/aarch64-apple-ios/release/libhrt_core.a \
+             "out/hrt-core-$VERSION-ios-device.a"
+          lipo -create \
+            target/aarch64-apple-ios-sim/release/libhrt_core.a \
+            target/x86_64-apple-ios/release/libhrt_core.a \
+            -output "out/hrt-core-$VERSION-ios-simulator.a"
+          lipo -info out/*.a
+
+      - name: Check the symbols survived the archive
+        run: |
+          nm -g target/aarch64-apple-ios/release/libhrt_core.a \
+            | grep -E "T _hrt_(simulate|plan_dose|free)$"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apple
+          path: out/*
+
+  release:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, macos, windows, android, apple]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Collect
+        run: |
+          mkdir -p out
+          find artifacts -type f -exec cp {} out/ \;
+          cp include/hrt_core.h out/
+          VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          mkdir -p "out/hrt-core-$VERSION-headers"
+          cp include/hrt_core.h "out/hrt-core-$VERSION-headers/"
+          ls -lh out
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: out/*
+          generate_release_notes: true
+          body: |
+            Prebuilt `hrt_core` for every supported platform, plus the C header.
+
+            Verify `hrt_abi_version()` returns 2 before using these binaries.
+            See [docs/INTEGRATION.md](docs/INTEGRATION.md) for how to wire each
+            platform up.

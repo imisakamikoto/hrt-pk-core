@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="hrt-pk-core">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1e273a"/>
+      <stop offset="1" stop-color="#0b111d"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="232" fill="url(#bg)"/>
+  <g stroke="#78dcc3" stroke-opacity="0.08" stroke-width="1.5">
+    <line x1="150" y1="300" x2="874" y2="300"/>
+    <line x1="150" y1="512" x2="874" y2="512"/>
+    <line x1="150" y1="724" x2="874" y2="724"/>
+  </g>
+  <rect x="132" y="404" width="760" height="204" rx="38" fill="#6fe3c0" fill-opacity="0.16"/>
+  <path d="M150 748 C244 744 312 718 354 600 C390 486 392 330 436 330 C506 330 560 470 622 566 C688 676 760 716 874 700"
+        fill="none" stroke="#6fe3c0" stroke-width="54" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,36 @@
+[package]
+name = "hrt-pk-core"
+version = "2.0.0"
+edition = "2021"
+rust-version = "1.75"
+description = "Offline pharmacokinetic engine for estradiol and testosterone HRT, exposed as a tiny JSON-over-C ABI shared library"
+license = "MIT"
+repository = "https://github.com/imisakamikoto/hrt-pk-core"
+homepage = "https://github.com/imisakamikoto/hrt-pk-core"
+documentation = "https://github.com/imisakamikoto/hrt-pk-core/blob/main/docs/API.md"
+readme = "README.md"
+keywords = ["pharmacokinetics", "hrt", "ffi", "estradiol", "testosterone"]
+categories = ["science", "api-bindings"]
+
+[lib]
+# The shared object keeps the name the Flutter app already loads.
+name = "hrt_core"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "unwind"
+
+[profile.release.package."*"]
+opt-level = 3
+
+[[example]]
+name = "demo"
+path = "examples/rust/main.rs"
