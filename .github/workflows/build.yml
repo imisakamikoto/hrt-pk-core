@@ -221,7 +221,7 @@ jobs:
           cp include/hrt_core.h "out/hrt-core-$VERSION-headers/"
           ls -lh out
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: out/*
           generate_release_notes: true
