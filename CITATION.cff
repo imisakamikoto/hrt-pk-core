@@ -1,0 +1,49 @@
+cff-version: 1.2.0
+message: "If you use this library in work you publish, cite it as below."
+title: "hrt-pk-core: an offline pharmacokinetic engine for estradiol and testosterone HRT"
+abstract: >-
+  A Rust library that turns a list of doses and blood tests into concentration
+  curves for estradiol, testosterone and cyproterone acetate, and answers
+  questions about those curves: peak, trough, time-weighted mean, AUC, time in
+  range, steady state, the dose that reaches a target, falling crossings for
+  reminders, adherence and supply forecasts, and unit conversion between mass
+  and molar concentrations. It is distributed as a shared library behind a
+  JSON-over-C ABI, with bindings for Dart, Python and .NET, and builds for
+  Android, iOS, Windows, macOS and Linux. It performs no I/O: no network, no
+  clock, no filesystem.
+type: software
+authors:
+  - name: "imisakamikoto"
+    alias: "Misaka"
+    website: "https://github.com/imisakamikoto"
+repository-code: "https://github.com/imisakamikoto/hrt-pk-core"
+url: "https://github.com/imisakamikoto/hrt-pk-core"
+license: MIT
+version: 2.0.0
+date-released: 2026-11-02
+keywords:
+  - pharmacokinetics
+  - hormone therapy
+  - estradiol
+  - testosterone
+  - pharmacometrics
+  - FFI
+  - Rust
+references:
+  - type: software
+    title: "Oyama's HRT Tracker"
+    authors:
+      - name: "Joseph Smirnova Oyama"
+    repository: "https://github.com/xunxunProjects/Oyama-s-HRT-Tracker"
+    license: MIT
+    notes: >-
+      The application this model was originally written for. The curve maths,
+      the ester constants and the analytical structure are ports from it.
+  - type: software
+    title: "HRT-Recorder-PKcomponent-Test"
+    authors:
+      - name: "LaoZhong-Mihari"
+    repository: "https://github.com/LaoZhong-Mihari/HRT-Recorder-PKcomponent-Test"
+    notes: >-
+      Source of the three-compartment structure, the biphasic depot kinetics and
+      the sublingual absorption tiers.

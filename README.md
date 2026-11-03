@@ -218,6 +218,21 @@ translation layer. `ABI_VERSION` is bumped whenever a field changes meaning.
 - **[Oyama's HRT Tracker](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker)** —
   the browser application whose model this is a port of.
 
+## Contributing
+
+Small library, narrow job. [CONTRIBUTING.md](CONTRIBUTING.md) says what is in
+scope and lists the five rules the code lives by — no clock, no I/O, no panic
+across the boundary, analytic maths, and a summary that never contradicts its
+curve.
+
+- **Questions and ideas** → [Discussions](https://github.com/imisakamikoto/hrt-pk-core/discussions); [SUPPORT.md](SUPPORT.md) explains which channel to use.
+- **Bugs** → [issues](https://github.com/imisakamikoto/hrt-pk-core/issues/new?template=bug_report.yml), ideally with the request JSON that reproduces it.
+- **Security** → privately, per [SECURITY.md](SECURITY.md), never in a public issue.
+- **Conduct** → [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+If you use this in published work, [CITATION.cff](CITATION.cff) has an entry you
+can cite.
+
 ## Licence
 
 MIT. The pharmacokinetic model is a port of Oyama's HRT Tracker by Joseph

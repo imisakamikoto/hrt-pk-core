@@ -1,0 +1,81 @@
+name: Bug report
+description: A crash, a wrong number, or an error envelope that should not be there.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. The single most useful thing you can add is
+        the request JSON that reproduces it — the whole request, not a summary.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens
+      description: The actual behaviour. Paste the response envelope, including `code` and `error` if there is one.
+      render: json
+      placeholder: |
+        {"ok":false,"code":"badRequest","error":"..."}
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+      description: And why — a lab value, a paper, another implementation, or arithmetic you can show.
+    validations:
+      required: true
+
+  - type: textarea
+    id: request
+    attributes:
+      label: The request that triggers it
+      description: Minimal JSON. Drop fields that are not needed to reproduce.
+      render: json
+      placeholder: |
+        {"events":[{"atH":0,"doseMG":2,"ester":"EV","route":"im"}],"bodyWeightKg":70,"nowH":168,"includeStats":true}
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Android
+        - iOS (device)
+        - iOS (simulator)
+        - Windows
+        - macOS
+        - Linux
+        - Not platform specific
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Library version and ABI
+      description: Output of `hrt_version()` and `hrt_abi_version()`.
+      placeholder: '2.0.0 / 2'
+    validations:
+      required: true
+
+  - type: input
+    id: caller
+    attributes:
+      label: How you call it
+      description: Language and binding — C, C++, Rust, Flutter/Dart, Python, .NET, or your own FFI.
+      placeholder: 'Flutter via bindings/dart/hrt_core.dart'
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Stack traces, screenshots, the curve you plotted. Optional.
+    validations:
+      required: false

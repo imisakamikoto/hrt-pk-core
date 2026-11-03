@@ -5,6 +5,12 @@ All notable changes to this library. The format follows
 [Semantic Versioning](https://semver.org/), and `ABI_VERSION` follows the rules
 in `docs/DEVELOPING.md`.
 
+## Unreleased
+
+<!-- New entries go here, newest first. See CONTRIBUTING.md for what counts as
+     a notable change: a new or changed export, a change to the maths, a
+     platform that starts or stops working — not a reformat. -->
+
 ## 2.0.0 — 2026-11-03
 
 The engine becomes a standalone library. Until now it existed only inside the

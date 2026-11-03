@@ -212,6 +212,19 @@ JSON 字段名与 [Oyama's HRT Tracker](https://github.com/xunxunProjects/Oyama-
 - **[Oyama's HRT Tracker](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker)** —
   模型移植自的浏览器应用。
 
+## 参与贡献
+
+库很小，职责很窄。[CONTRIBUTING.md](CONTRIBUTING.md) 说明了什么在范围内，以及
+代码遵守的五条规则 —— 不读时钟、不做 I/O、panic 不跨越边界、数学保持解析式、
+摘要永不与曲线自相矛盾。
+
+- **提问与想法** → [Discussions](https://github.com/imisakamikoto/hrt-pk-core/discussions)，两个渠道怎么选见 [SUPPORT.md](SUPPORT.md)。
+- **Bug** → [issues](https://github.com/imisakamikoto/hrt-pk-core/issues/new?template=bug_report.yml)，最好附上能复现的请求 JSON。
+- **安全问题** → 私密报告，见 [SECURITY.md](SECURITY.md)，不要开公开 issue。
+- **行为准则** → [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
+
+如果这个库出现在你的论文或项目里，[CITATION.cff](CITATION.cff) 里有可直接引用的条目。
+
 ## 许可
 
 MIT。药代动力学模型移植自 Joseph Smirnova Oyama 的 Oyama's HRT Tracker；完整  

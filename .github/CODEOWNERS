@@ -1,0 +1,8 @@
+# Who reviews what. One maintainer, so this exists mostly to make the
+# "review requested" notification arrive on its own.
+*       @imisakamikoto
+
+# Changes to the model or the ABI deserve a slower read.
+/src/                 @imisakamikoto
+/include/hrt_core.h   @imisakamikoto
+/docs/API.md          @imisakamikoto

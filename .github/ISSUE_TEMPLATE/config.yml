@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: How do I…? (usage question)
+    url: https://github.com/imisakamikoto/hrt-pk-core/discussions/categories/q-a
+    about: Building, loading the library, wiring a binding, interpreting a result. Docs first, then ask here.
+  - name: Report a security vulnerability
+    url: https://github.com/imisakamikoto/hrt-pk-core/security/advisories/new
+    about: Privately, please — not in a public issue. See SECURITY.md for what counts.
+  - name: Read the API reference
+    url: https://github.com/imisakamikoto/hrt-pk-core/blob/main/docs/API.md
+    about: Every function, every field, every error code.

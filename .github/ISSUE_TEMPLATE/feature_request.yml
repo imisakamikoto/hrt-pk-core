@@ -1,0 +1,62 @@
+name: Feature request
+description: A question the library cannot answer yet, or a way it answers badly.
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The bar for a new export is *"a caller cannot compute this from what is
+        already returned"* — not *"it would be convenient"*. Please say which
+        of the two you are proposing; both are fine to raise, they just get
+        answered differently.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What question are you trying to answer?
+      description: Describe the situation, not the function signature. What are you building, and where does it stop?
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you do today instead
+      description: Reconstructing it from `hrt_simulate` output? Approximating it in the client? Nothing at all?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: shape
+    attributes:
+      label: What kind of change is this?
+      options:
+        - New exported function
+        - New field on an existing response
+        - Better error or warning for input I already send
+        - Documentation only
+        - New language binding
+    validations:
+      required: true
+
+  - type: input
+    id: abi
+    attributes:
+      label: Would this break an existing caller?
+      description: Only if a field name or return shape would change. Adding a function does not count.
+      placeholder: 'No — additive'
+    validations:
+      required: false
+
+  - type: textarea
+    id: model
+    attributes:
+      label: Does it need the model, or only the client?
+      description: |
+        Peak, trough, AUC, time in range, steady state, dose solving and
+        reminders all exist. If what you want is presentation — colours, layout,
+        formatting — it belongs in the calling app, and the issue can still be
+        useful as a request for a documented recipe.
+    validations:
+      required: false
