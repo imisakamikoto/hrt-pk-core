@@ -240,6 +240,83 @@ pub fn check(input: SafetyInput<'_>) -> Vec<Warning> {
         }
     }
 
+    // Spironolactone sits on its own axis: it blocks the androgen receptor
+    // rather than lowering testosterone, so nothing in the T curve reflects
+    // whether it is working, and the model reports canrenone instead.
+    let spiro_total: f64 = doses
+        .iter()
+        .filter(|e| e.ester == Ester::SPIRO)
+        .map(|e| e.dose_mg)
+        .sum();
+    if spiro_total > 0.0 {
+        let span_days = {
+            let first = doses.iter().map(|e| e.time_h).fold(f64::INFINITY, f64::min);
+            let last = doses
+                .iter()
+                .map(|e| e.time_h)
+                .fold(f64::NEG_INFINITY, f64::max);
+            ((last - first) / 24.0).max(1.0)
+        };
+        let per_day = spiro_total / span_days;
+
+        out.push(warn(
+            "spiroBlocksReceptors",
+            "info",
+            "Spironolactone is modelled as canrenone. It blocks the androgen \
+             receptor rather than lowering testosterone, so this curve says \
+             whether the drug is present, not how completely it is working — \
+             and nothing here estimates receptor-level blockade.",
+        ));
+
+        if per_day < 50.0 {
+            out.push(
+                warn(
+                    "spiroLowDose",
+                    "info",
+                    format!(
+                        "Spironolactone averages {:.0} mg/day over the record. \
+                         Androgen blockade usually needs 50–200 mg/day, and \
+                         sometimes more; below that the level is mostly a \
+                         diuretic effect.",
+                        per_day
+                    ),
+                )
+                .with_value(per_day),
+            );
+        } else if per_day > 400.0 {
+            out.push(
+                warn(
+                    "spiroHighDose",
+                    "warning",
+                    format!(
+                        "Spironolactone averages {:.0} mg/day over the record, \
+                         above the 400 mg/day that is usually the ceiling. \
+                         Potassium retention, low blood pressure, urinary \
+                         frequency and gastrointestinal effects all become more \
+                         likely, and the extra blockade is small.",
+                        per_day
+                    ),
+                )
+                .with_value(per_day),
+            );
+        } else if per_day > 200.0 {
+            out.push(
+                warn(
+                    "spiroHighDose",
+                    "warning",
+                    format!(
+                        "Spironolactone averages {:.0} mg/day, above the 200 \
+                         mg/day usually needed with a non-oral oestrogen. Above \
+                         that, potassium and blood-pressure effects grow faster \
+                         than the benefit.",
+                        per_day
+                    ),
+                )
+                .with_value(per_day),
+            );
+        }
+    }
+
     // Two nearly identical doses are usually a double tap, not a plan.
     let mut sorted: Vec<&&DoseEvent> = doses.iter().collect();
     sorted.sort_by(|a, b| {
@@ -267,7 +344,9 @@ pub fn check(input: SafetyInput<'_>) -> Vec<Warning> {
     }
 
     for e in &doses {
-        if e.dose_mg > 100.0 && !e.ester.is_unmodelled() {
+        // Spironolactone is routinely taken at 100–200 mg, so the generic
+        // "large dose" prompt would fire on an ordinary prescription.
+        if e.dose_mg > 100.0 && !e.ester.is_unmodelled() && e.ester != Ester::SPIRO {
             out.push(
                 warn(
                     "largeDose",

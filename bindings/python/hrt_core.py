@@ -172,6 +172,30 @@ class HrtCore:
     def sensitivity(self, **request: Any) -> list[dict[str, Any]]:
         return self._call("hrt_sensitivity", request)
 
+    def blockade(self, **request: Any) -> dict[str, Any]:
+        """Anti-androgen dose bands, coverage and the next dose due."""
+        return self._call("hrt_blockade", request)
+
+    def progress(self, **request: Any) -> dict[str, Any]:
+        """Suppression and effectiveness over a day, a month and a year."""
+        return self._call("hrt_progress", request)
+
+    def compare(self, **request: Any) -> dict[str, Any]:
+        """Up to six regimens, each read after it settles."""
+        return self._call("hrt_compare", request)
+
+    def what_if(self, **request: Any) -> dict[str, Any]:
+        """The record with one dose changed, against the record as logged."""
+        return self._call("hrt_what_if", request)
+
+    def lab_review(self, **request: Any) -> dict[str, Any]:
+        """A lab panel read back rather than fitted."""
+        return self._call("hrt_lab_review", request)
+
+    def body(self, **request: Any) -> dict[str, Any]:
+        """Bust, underbust and the cup size they imply."""
+        return self._call("hrt_body", request)
+
     def batch(self, calls: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Several calls at once; failures come back inline, not as exceptions."""
         result = self._call("hrt_batch", {"calls": calls})
@@ -193,6 +217,12 @@ _FUNCTIONS = (
     "hrt_patches",
     "hrt_safety",
     "hrt_sensitivity",
+    "hrt_blockade",
+    "hrt_progress",
+    "hrt_compare",
+    "hrt_what_if",
+    "hrt_lab_review",
+    "hrt_body",
     "hrt_batch",
 )
 

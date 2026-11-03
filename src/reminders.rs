@@ -144,7 +144,9 @@ mod tests {
             e2_pg_ml: values,
             cpa_ng_ml: vec![0.0; 121],
             t_ng_dl: vec![0.0; 121],
+            spiro_ng_ml: vec![0.0; 121],
             auc: 0.0,
+            spiro_auc: 0.0,
         }
     }
 

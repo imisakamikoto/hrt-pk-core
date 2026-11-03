@@ -1,6 +1,6 @@
 [package]
 name = "hrt-pk-core"
-version = "2.0.0"
+version = "2.2.0"
 edition = "2021"
 rust-version = "1.75"
 description = "Offline pharmacokinetic engine for estradiol and testosterone HRT, exposed as a tiny JSON-over-C ABI shared library"

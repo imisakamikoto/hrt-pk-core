@@ -435,7 +435,7 @@ Everything the engine accepts, as data. No request fields.
 
 ```json
 {
-  "version": "2.0.0", "abi": 2,
+  "version": "2.2.0", "abi": 2,
   "esters": [{"code":"EV","name":"Estradiol valerate","molecularWeight":356.5,
               "activeFactor":0.764,"hormone":"e2","modelled":true,
               "routes":["injection","oral","sublingual"],
@@ -549,6 +549,244 @@ before the first dose, or the trough will be zero and every change will read 0%.
 
 ---
 
+### `hrt_blockade`
+
+Anti-androgen support: is the dose in a range that is actually used, is the
+record continuous, and when is the next one due.
+
+**Request** — `events`, `bodyWeightKg`, `nowH`, optional `windowDays` (default
+28), `birthYear`, `params`, `clearanceMult`. Targets are not needed: bands are
+absolute daily milligrams, not concentrations.
+
+**Result**
+
+```json
+{"compounds": [{
+    "ester": "SPIRO", "name": "Spironolactone", "modelled": true,
+    "doseMG": 100, "intervalH": 12, "dailyMG": 200,
+    "band": "typical", "bandLowMG": 50, "bandHighMG": 200, "bandCeilingMG": 400,
+    "level": {"peak": 0.41, "trough": 0.22, "mean": 0.31, "…": "…"},
+    "coveragePct": 96.4, "expected": 56, "taken": 54,
+    "nextDueH": 480012.0, "overdueH": 0.0,
+    "verdict": "adequate",
+    "mechanism": "receptorBlockade",
+    "expectsTestosteroneFall": false,
+    "mechanismNote": "Blocks the androgen receptor. A review of 22 studies …",
+    "notes": ["…"]
+  }],
+ "windowDays": 28, "androgenSuppressionModelled": false, "note": "…"}
+```
+
+`band` is `low`, `typical`, `high` or `aboveCeiling`, from the daily milligram
+total against per-compound bands (spironolactone 50/200/400, cyproterone
+12.5/50/100, bicalutamide 25/50/150, medroxyprogesterone 2.5/10/20). `verdict`
+adds the reasons a band alone cannot express: `coverage` when under 80% of the
+window was logged, `nothingLogged` when there is no history at all.
+
+`mechanism` and `expectsTestosteroneFall` are the two fields a caller should
+read before drawing any conclusion. Spironolactone and bicalutamide block the
+receptor and are not expected to lower testosterone; cyproterone and
+medroxyprogesterone suppress gonadotropins and are. A record that credits a
+receptor blocker with a fall in testosterone will read a flat curve as a dosing
+failure when the dose was never the mechanism. `androgenSuppressionModelled` is
+always `false`: the model has no receptor occupancy, and saying so once is
+better than implying a percentage.
+
+`nextDueH` is the last logged dose plus the median interval, not a curve
+threshold — a receptor blocker has no level to cross.
+
+---
+
+### `hrt_progress`
+
+Testosterone suppression and treatment effectiveness over a day, a month and a
+year, each in the conservative direction.
+
+**Request** — `events`, `labs`, `bodyWeightKg`, `nowH`, optional `e2Target`,
+`tTarget`, `birthYear`, `params`, `clearanceMult`.
+
+**Result**
+
+```json
+{"windows": [{
+    "label": "day", "hours": 24, "startH": 479000, "endH": 479024,
+    "labsN": 0, "tLabsN": 0, "e2LabsN": 0,
+    "tMeanNgDl": null, "e2MeanPgMl": null,
+    "tBelowCeiling": 0, "tCeilingNgDl": 50,
+    "tSuppressionPct": null,
+    "timeInRangePct": 91.2, "coveragePct": 100, "effectivenessPct": 91.2
+  }, …],
+ "tCeilingNgDl": 50, "note": "…"}
+```
+
+**Suppression** is the share of measured testosterone values below 50 ng/dL,
+reported as the one-sided 95% Wilson lower bound rather than the raw share. One
+lab under the ceiling is not 100% suppression, and the bound says so. It is
+`null`, not zero, when the window holds no testosterone labs: absence of
+evidence is not evidence of suppression.
+
+**Effectiveness** is `min(timeInRangePct, coveragePct)` — the weaker of "the
+model stays in range" and "the doses were actually taken". A regimen that is
+perfect on paper and taken half the time is half effective; one taken perfectly
+and sitting above the range is the same.
+
+The three windows are fixed: 24 h, 720 h (30 days) and 8 760 h (365 days),
+ending at `nowH`.
+
+---
+
+### `hrt_compare`
+
+Several regimens, each settled before it is read.
+
+**Request** — `arms` (1–6, each `{label?, schedule}`), `bodyWeightKg`, optional
+`birthYear`, `params`, `e2Target`, `tTarget`, `maxCycles` (default 128).
+
+```json
+{"arms": [
+  {"label": "weekly EV", "schedule": {"route":"injection","ester":"EV","doseMG":4,"intervalH":168}},
+  {"label": "daily oral", "schedule": {"route":"oral","ester":"E2","doseMG":0.5,"intervalH":24}}
+], "bodyWeightKg": 70, "e2Target": {"low": 100, "high": 200}}
+```
+
+**Result** — `arms[]` with `label`, `analyte`, `doseMG`, `intervalH`, `dailyMG`,
+`weeklyMG`, `activeDailyMG`, `stable`, `cycles`, `accumulationRatio`,
+`curve` (peak, trough, mean, fluctuation, time in range) and `verdict`; plus
+`steadiest`, `highestMean` and `lowestWeeklyMg`.
+
+`verdict` is `inRange`, `belowRange`, `aboveRange`, `volatile`, `notStable`,
+`notModelled` or `noCurve`. `notStable` is checked first: a schedule that has
+not plateaued explains its own swing.
+
+`activeDailyMG` is the only cross-ester comparison that means anything — 2 mg of
+valerate is 1.53 mg of estradiol, and `weeklyMG` ignores that.
+
+The three summary fields deliberately answer three different questions. The
+steadiest arm is rarely the cheapest and is often not the one that runs highest.
+
+---
+
+### `hrt_what_if`
+
+The record with one dose changed, against the record as logged.
+
+**Request** — `events`, `nowH`, optional `analyte` (`e2`, `t`, `cpa`, `spiro`;
+default `e2`), `horizonH` (default 672), `scenarios`, `bodyWeightKg`,
+`birthYear`, `params`, `clearanceMult`, targets.
+
+```json
+{"scenarios": [
+  {"kind": "skipNextDose"},
+  {"kind": "delayNextDose", "hours": 12},
+  {"kind": "stopFor", "hours": 336}
+]}
+```
+
+Kinds: `baseline`, `skipNextDose`, `doubleNextDose`, `halveNextDose`,
+`delayNextDose{hours}`, `stopFor{hours}`. Omitted `scenarios` means
+`baseline`, `skipNextDose`, `doubleNextDose` and a 12 h delay.
+
+**Result** — `baseline`, `analyte`, `startH`, `horizonH`, `target`, and
+`scenarios[]` with `id`, `label`, `applied`, `changes`, `curve`,
+`meanDeltaPct`, `troughDeltaPct`, `peakDeltaPct`, `verdict`, `note`.
+
+**Nothing at or before `nowH` is ever altered.** A what-if tool that rewrites
+the past can make any scenario look good, so the record up to now is read-only
+input. `changes` counts the doses the scenario touched; when the record has no
+future dose, the row says `applied: false`, `verdict: "noChange"`.
+
+`verdict` is `reference` (the baseline row), `lower`, `higher`, `same` (inside
+±5%, which is the model's own error), `dipsBelowTarget` or `noChange`.
+`dipsBelowTarget` is checked before the magnitude: taking the trough below the
+range is the case worth changing the schedule for rather than the dose.
+
+---
+
+### `hrt_lab_review`
+
+A panel read back rather than fitted.
+
+**Request** — `labs`, `nowH`, optional `e2Target`, `tTarget`, `cadenceDays`
+(default 90).
+
+**Result**
+
+```json
+{"readings": [{"id": "a", "timeH": 4560, "daysAgo": 10.0,
+   "analyte": "e2", "value": 320, "reported": 320, "unit": "pg/ml",
+   "status": "above", "target": {"low": 100, "high": 200}}, …],
+ "e2Count": 1, "tCount": 0, "e2Latest": 320, "tLatest": null,
+ "e2Trend": "insufficient", "tTrend": "insufficient",
+ "below": 0, "above": 1, "inRange": 0,
+ "daysSinceLast": 10.0, "cadenceDays": 90,
+ "cadence": "fresh", "overdueByDays": null, "note": "…"}
+```
+
+The analyte is decided by the unit: `ng/dl` and `nmol/l` are testosterone,
+`pg/ml` and `pmol/l` are estradiol. Molar values are converted to the model's
+unit before they are compared, so a 400 pmol/L result is judged at 109 pg/mL
+rather than at 400.
+
+`status` is `below`, `inRange`, `above` or `noTarget`. With no range supplied
+the reading is reported, not judged — inventing a default range would be a
+clinical claim the caller did not make.
+
+`cadence` compares `daysSinceLast` against `cadenceDays`: `fresh`, `dueSoon`
+(past 80% of the interval), `overdue` (with `overdueByDays`) or `none`. Ninety
+days is a common first-year follow-up, not a rule; override it.
+
+A trend needs two readings of the same analyte and only counts beyond 10%, which
+is roughly the between-assay spread of the immunoassays these numbers usually
+come from.
+
+---
+
+### `hrt_body`
+
+Bust, underbust and the cup size they imply.
+
+**Request**
+
+```json
+{"measurements": [{"timeH": 0, "bustCm": 91, "underbustCm": 76}],
+ "system": "eu", "heightCm": 170, "weightKg": 63}
+```
+
+**Result**
+
+```json
+{"system": "eu", "bustCm": 91, "underbustCm": 76,
+ "differenceCm": 15, "differenceIn": 5.906,
+ "sizes": [
+   {"system": "eu", "band": 75, "bandUnit": "cm", "cup": "C",
+    "label": "75C", "differenceCm": 15, "differenceIn": 5.906},
+   {"system": "cn", "band": 75, "bandUnit": "cm", "cup": "C", "label": "75C", "…": "…"},
+   {"system": "uk", "band": 34, "bandUnit": "in", "cup": "A", "label": "34A", "…": "…"},
+   {"system": "us", "band": 34, "bandUnit": "in", "cup": "A", "label": "34A", "…": "…"}
+ ],
+ "ratio": 1.197, "bmi": 21.8, "paired": true, "cupProgress": 0.75,
+ "growth": {"points": 3, "spanDays": 60, "firstDifferenceCm": 10,
+            "lastDifferenceCm": 12, "changeCm": 2, "rateCmPerMonth": 1.01,
+            "nextCup": "B", "monthsToNextCup": 0.5},
+ "note": "…"}
+```
+
+The difference between the two circumferences is the measurement; the letter is
+a convention sitting on top of it. So `sizes` always carries the requested
+system first and the other three after it — the same body is a 75C in Europe, a
+75C in China from different arithmetic, and a 34A under the UK +4 rule, which
+eats four inches of the difference before the cup is counted.
+
+`growth` is the least-squares slope of the **difference**, not of the bust: a
+tape that grows everywhere changes no cup. `monthsToNextCup` is `null` when the
+rate is flat or negative, because projecting a stop is not a projection.
+
+No volume is estimated. Turning a circumference into millilitres needs a shape
+assumption that varies more between two people than between two cup sizes. There
+is no target and no "normal": cup size is reported, never judged.
+
+---
+
 ### `hrt_batch`
 
 Several calls in one crossing of the FFI boundary.
@@ -573,8 +811,8 @@ not cancel the rest.
 | Function | Result |
 |---|---|
 | `hrt_abi_version()` | `2` (no argument) |
-| `hrt_version()` | `{"ok":true,"result":"2.0.0"}` |
-| `hrt_capabilities()` | `{"ok":true,"result":{"abi":2,"version":"2.0.0","functions":[…]}}` |
+| `hrt_version()` | `{"ok":true,"result":"2.2.0"}` |
+| `hrt_capabilities()` | `{"ok":true,"result":{"abi":2,"version":"2.2.0","functions":[…]}}` |
 | `hrt_free(char *)` | nothing; releases a returned string |
 
 ---
@@ -589,4 +827,7 @@ not cancel the rest.
 | `clearanceMult` | 0.1–10 |
 | `maxCycles` | 2–512 |
 | `pct` for sensitivity | 0–90 |
+| Arms in `hrt_compare` | 6 |
+| Scenarios in `hrt_what_if` | 8 |
+| Measurements in `hrt_body`, labs in `hrt_lab_review` | 500 each |
 | String size | No limit; inputs are parsed directly from the caller's buffer |

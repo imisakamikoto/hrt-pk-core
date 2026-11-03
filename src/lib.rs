@@ -32,6 +32,12 @@
 //! * [`stats`] — peak, trough, exposure and time in range.
 //! * [`planning`] — steady state, dose solving, adherence, supply.
 //! * [`reminders`] — when the level will drop out of range.
+//! * [`blockade`] — anti-androgen dose bands, coverage and the next dose due.
+//! * [`compare`] — several regimens settled side by side.
+//! * [`whatif`] — the same record with one dose changed.
+//! * [`labsreview`] — reading a panel back: in range, moving, overdue.
+//! * [`body`] — bust, underbust and the cup size they imply in each system.
+//! * [`progress`] — suppression and effectiveness over a day, a month and a year.
 //! * [`units`], [`catalog`], [`safety`], [`analysis`] — everything a client
 //!   needs around the maths.
 //! * [`api`] — the same functionality as a JSON-over-C ABI, which is how the
@@ -39,23 +45,30 @@
 //!
 //! # Units
 //!
-//! Concentrations are pg/mL for estradiol, ng/dL for testosterone and ng/mL for
-//! cyproterone acetate. Times are hours since the Unix epoch, except for the
-//! intervals and half-lives, which are durations in hours. Doses are milligrams
-//! of the logged ester, not of the active hormone — [`units::active_mg`]
-//! converts between the two.
+//! Concentrations are pg/mL for estradiol, ng/dL for testosterone, and ng/mL
+//! for cyproterone acetate and for canrenone — the active metabolite through
+//! which spironolactone is modelled. Times are hours since the Unix epoch,
+//! except for the intervals and half-lives, which are durations in hours. Doses
+//! are milligrams of the logged ester, not of the active hormone —
+//! [`units::active_mg`] converts between the two.
 
 pub mod analysis;
 pub mod api;
+pub mod blockade;
+pub mod body;
 pub mod calibration;
 pub mod catalog;
+pub mod compare;
 pub mod engine;
+pub mod labsreview;
 pub mod model;
 pub mod planning;
+pub mod progress;
 pub mod reminders;
 pub mod safety;
 pub mod stats;
 pub mod units;
+pub mod whatif;
 
 /// The wire format version. Bumped whenever a request or response field
 /// changes meaning, so a caller can refuse a library it does not understand.

@@ -54,12 +54,15 @@ impl Ester {
     pub fn is_unmodelled(self) -> bool {
         matches!(
             self,
-            Ester::SPIRO | Ester::BICA | Ester::MPA | Ester::LEUP | Ester::TRIP | Ester::RLX
+            Ester::BICA | Ester::MPA | Ester::LEUP | Ester::TRIP | Ester::RLX
         )
     }
 
     pub fn is_estradiol(self) -> bool {
-        !self.is_testosterone() && self != Ester::CPA && !self.is_unmodelled()
+        !self.is_testosterone()
+            && self != Ester::CPA
+            && self != Ester::SPIRO
+            && !self.is_unmodelled()
     }
 
     /// Molecular weight, g/mol.
@@ -207,8 +210,12 @@ pub struct LabResult {
 }
 
 /// Tunable PK parameters, all settable in the app's advanced screen.
+///
+/// A caller may send a subset: every missing field falls back to
+/// [`PkParams::default`]. Without that, adding a parameter would break every
+/// client that stored a settings object built against an older release.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", default)]
 pub struct PkParams {
     pub e2_k_clear: f64,
     pub e2_k_clear_inj: f64,
@@ -233,6 +240,15 @@ pub struct PkParams {
     pub t_gel_arm: f64,
     pub t_gel_thigh: f64,
     pub t_gel_scrotal: f64,
+    /// Fraction of an oral spironolactone dose that reaches canrenone:
+    /// absorption (~0.65) × hepatic conversion (~0.80).
+    pub spiro_f_canrenone: f64,
+    /// Absorption rate of spironolactone itself, /h.
+    pub spiro_k_abs: f64,
+    /// Conversion of spironolactone to canrenone, /h.
+    pub spiro_k_convert: f64,
+    /// Canrenone elimination, /h. Default is a 19 h half-life.
+    pub spiro_k_clear: f64,
 }
 
 impl Default for PkParams {
@@ -261,6 +277,10 @@ impl Default for PkParams {
             t_gel_arm: 0.1,
             t_gel_thigh: 0.1,
             t_gel_scrotal: 0.5,
+            spiro_f_canrenone: 0.52,
+            spiro_k_abs: 1.386,
+            spiro_k_convert: 0.495,
+            spiro_k_clear: 0.0365,
         }
     }
 }
@@ -304,6 +324,10 @@ impl PkParams {
             (&mut self.t_gel_arm, (0.0, 1.0)),
             (&mut self.t_gel_thigh, (0.0, 1.0)),
             (&mut self.t_gel_scrotal, (0.0, 1.0)),
+            (&mut self.spiro_f_canrenone, (0.05, 1.0)),
+            (&mut self.spiro_k_abs, (0.05, 10.0)),
+            (&mut self.spiro_k_convert, (0.02, 5.0)),
+            (&mut self.spiro_k_clear, (0.005, 0.5)),
         ]
     }
 }
@@ -350,7 +374,13 @@ pub struct SimulationResult {
     pub e2_pg_ml: Vec<f64>,
     pub cpa_ng_ml: Vec<f64>,
     pub t_ng_dl: Vec<f64>,
+    /// Canrenone, the active metabolite of spironolactone, in ng/mL.
+    #[serde(default)]
+    pub spiro_ng_ml: Vec<f64>,
     pub auc: f64,
+    /// Area under the canrenone curve over the same window, ng/mL·h.
+    #[serde(default)]
+    pub spiro_auc: f64,
 }
 
 impl SimulationResult {
@@ -531,12 +561,18 @@ impl Ester {
         })
     }
 
-    /// `"e2"`, `"t"`, `"cpa"` or `None` when the compound is not modelled.
+    /// `"e2"`, `"t"`, `"cpa"`, `"spiro"` — or `None` when the compound is not
+    /// modelled at all.
+    ///
+    /// Spironolactone reports its active metabolite, canrenone: the parent drug
+    /// is gone within hours while canrenone carries the effect.
     pub fn hormone(self) -> Option<&'static str> {
         if self.is_testosterone() {
             Some("t")
         } else if self == Ester::CPA {
             Some("cpa")
+        } else if self == Ester::SPIRO {
+            Some("spiro")
         } else if self.is_estradiol() {
             Some("e2")
         } else {

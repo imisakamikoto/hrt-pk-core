@@ -16,6 +16,9 @@ const LN2: f64 = std::f64::consts::LN_2;
 const VD_PER_KG_E2: f64 = 2.0;
 const VD_PER_KG_CPA: f64 = 14.0;
 const VD_PER_KG_T: f64 = 1.0;
+/// Canrenone distributes widely; this volume puts 100 mg/day at the
+/// 200–400 ng/mL steady state reported for that dose.
+const VD_PER_KG_SPIRO: f64 = 2.8;
 
 const AGE_REF_YEARS: f64 = 54.0;
 const AGE_MIN: f64 = 19.0;
@@ -428,6 +431,17 @@ pub fn bioavailability(params: &PkParams, event: &DoseEvent) -> f64 {
         };
     }
 
+    if event.ester == Ester::SPIRO {
+        // Already a fraction of the dose reaching canrenone: absorption and
+        // hepatic conversion together. No molecular-weight factor applies,
+        // because the reported curve is the metabolite itself.
+        return if event.route == Route::Oral {
+            params.spiro_f_canrenone
+        } else {
+            0.0
+        };
+    }
+
     if event.ester.is_testosterone() {
         return match event.route {
             Route::Injection => {
@@ -665,6 +679,22 @@ fn resolve_params(
                     f_slow: CpaOral::F,
                 };
             }
+            if event.ester == Ester::SPIRO {
+                // `f` is absorption × conversion, so the amount that reaches
+                // the canrenone compartment already includes both losses.
+                return ResolvedParams {
+                    frac_fast: 1.0,
+                    k1_fast: params.spiro_k_abs,
+                    k1_slow: 0.0,
+                    k2: params.spiro_k_convert,
+                    k2_slow: None,
+                    k3: params.spiro_k_clear,
+                    f: params.spiro_f_canrenone,
+                    rate_mg_h: 0.0,
+                    f_fast: params.spiro_f_canrenone,
+                    f_slow: params.spiro_f_canrenone,
+                };
+            }
             let to_active = event.ester.to_active_factor();
             let f = params.e2_oral_bio * to_active;
             ResolvedParams {
@@ -829,6 +859,10 @@ enum Shape {
     Injection,
     OralOrGel,
     CpaOral,
+    /// Oral spironolactone: absorption → hepatic conversion to canrenone →
+    /// canrenone elimination. Three steps, because the metabolite is what
+    /// accumulates and what the effect follows.
+    SpiroOral,
     Sublingual,
     /// `zero_order` is true when a labelled release rate drives the input.
     Patch {
@@ -853,6 +887,8 @@ impl EventModel {
             Route::Oral => {
                 if event.ester == Ester::CPA {
                     Shape::CpaOral
+                } else if event.ester == Ester::SPIRO {
+                    Shape::SpiroOral
                 } else {
                     Shape::OralOrGel
                 }
@@ -907,6 +943,7 @@ impl EventModel {
                     CpaOral::beta(),
                 )
             }
+            Shape::SpiroOral => analytic3c(tau, dose, p.f, p.k1_fast, p.k2, p.k3),
             Shape::OralOrGel => {
                 if p.k2 > 0.0 {
                     analytic3c(tau, dose, p.f, p.k1_fast, p.k2, p.k3)
@@ -1132,6 +1169,7 @@ pub fn run_simulation_grid(
     let plasma_e2 = VD_PER_KG_E2 * body_weight_kg * 1000.0;
     let plasma_cpa = VD_PER_KG_CPA * body_weight_kg * 1000.0;
     let plasma_t = VD_PER_KG_T * body_weight_kg * 1000.0;
+    let plasma_spiro = VD_PER_KG_SPIRO * body_weight_kg * 1000.0;
 
     let step = (end_time - start_time) / (steps - 1).max(1) as f64;
     let mut times: Vec<f64> = (0..steps).map(|i| start_time + i as f64 * step).collect();
@@ -1168,7 +1206,9 @@ pub fn run_simulation_grid(
         e2_pg_ml: Vec::with_capacity(times.len()),
         cpa_ng_ml: Vec::with_capacity(times.len()),
         t_ng_dl: Vec::with_capacity(times.len()),
+        spiro_ng_ml: Vec::with_capacity(times.len()),
         auc: 0.0,
+        spiro_auc: 0.0,
     };
 
     let mut activate_idx = 0usize;
@@ -1192,11 +1232,14 @@ pub fn run_simulation_grid(
         let mut amount_e2 = 0.0;
         let mut amount_cpa = 0.0;
         let mut amount_t = 0.0;
+        let mut amount_spiro = 0.0;
         for idx in &active {
             let pc = &prepared[*idx];
             let a = pc.model.amount(*t);
             if pc.ester == Ester::CPA {
                 amount_cpa += a;
+            } else if pc.ester == Ester::SPIRO {
+                amount_spiro += a;
             } else if pc.ester.is_testosterone() {
                 amount_t += a;
             } else {
@@ -1207,17 +1250,21 @@ pub fn run_simulation_grid(
         let e2 = (amount_e2 * 1e9) / plasma_e2;
         let cpa = (amount_cpa * 1e6) / plasma_cpa;
         let tconc = (amount_t * 1e8) / plasma_t;
+        let spiro = (amount_spiro * 1e6) / plasma_spiro;
 
         if i > 0 {
             let dt = t - times[i - 1];
             let prev = *out.e2_pg_ml.last().unwrap_or(&0.0);
             out.auc += 0.5 * (e2 + prev) * dt;
+            let prev_spiro = *out.spiro_ng_ml.last().unwrap_or(&0.0);
+            out.spiro_auc += 0.5 * (spiro + prev_spiro) * dt;
         }
 
         out.time_h.push(*t);
         out.e2_pg_ml.push(e2);
         out.cpa_ng_ml.push(cpa);
         out.t_ng_dl.push(tconc);
+        out.spiro_ng_ml.push(spiro);
     }
 
     Some(out)

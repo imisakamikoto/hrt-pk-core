@@ -25,7 +25,7 @@ symbols are plain C, so anything with an FFI can call it.
 └─────────────┘   JSON    └──────────────────────────────────────────┘
 ```
 
-- **ABI 2**, library version `2.0.0`, 19 exported functions.
+- **ABI 2**, library version `2.2.0`, 25 exported functions.
 - 1.5 MB–21 MB depending on the platform; no runtime dependencies beyond libc.
 - Deterministic: the same input gives the same output, on every platform.
 - Panics are caught at the boundary and returned as an error object.
@@ -53,6 +53,12 @@ symbols are plain C, so anything with an FFI can call it.
 | Which removal ended which patch? | `hrt_patches` |
 | Is there something in this record the model ignores? | `hrt_safety` |
 | Which estimate does the answer depend on? | `hrt_sensitivity` |
+| Why is my spiro dose "enough" and not blocking anything measurable? | `hrt_blockade` |
+| How much have I actually suppressed, conservatively, over a year? | `hrt_progress` |
+| Weekly injections or daily gel — which is steadier, and at what cost? | `hrt_compare` |
+| What happens if I miss Thursday? | `hrt_what_if` |
+| Are my labs in range, moving, and overdue for the next draw? | `hrt_lab_review` |
+| What cup size is 91 cm over 76 cm? | `hrt_body` |
 | All of the above, without 12 FFI crossings. | `hrt_batch` |
 
 ## Documentation

@@ -61,6 +61,12 @@ class HrtCore {
     _patches = _lookup('hrt_patches');
     _safety = _lookup('hrt_safety');
     _sensitivity = _lookup('hrt_sensitivity');
+    _blockade = _lookup('hrt_blockade');
+    _progress = _lookup('hrt_progress');
+    _compare = _lookup('hrt_compare');
+    _whatIf = _lookup('hrt_what_if');
+    _labReview = _lookup('hrt_lab_review');
+    _body = _lookup('hrt_body');
     _batch = _lookup('hrt_batch');
   }
 
@@ -101,6 +107,12 @@ class HrtCore {
   late final _JsonCall _patches;
   late final _JsonCall _safety;
   late final _JsonCall _sensitivity;
+  late final _JsonCall _blockade;
+  late final _JsonCall _progress;
+  late final _JsonCall _compare;
+  late final _JsonCall _whatIf;
+  late final _JsonCall _labReview;
+  late final _JsonCall _body;
   late final _JsonCall _batch;
 
   _JsonCall _lookup(String name) =>
@@ -205,6 +217,30 @@ class HrtCore {
 
   List<dynamic> sensitivity(Map<String, Object?> request) =>
       _call(_sensitivity, request) as List<dynamic>;
+
+  /// Anti-androgen dose bands, coverage and the next dose due.
+  Map<String, dynamic> blockade(Map<String, Object?> request) =>
+      _call(_blockade, request) as Map<String, dynamic>;
+
+  /// Suppression and effectiveness over a day, a month and a year.
+  Map<String, dynamic> progress(Map<String, Object?> request) =>
+      _call(_progress, request) as Map<String, dynamic>;
+
+  /// Up to six regimens, each read after it settles.
+  Map<String, dynamic> compare(Map<String, Object?> request) =>
+      _call(_compare, request) as Map<String, dynamic>;
+
+  /// The record with one dose changed, against the record as logged.
+  Map<String, dynamic> whatIf(Map<String, Object?> request) =>
+      _call(_whatIf, request) as Map<String, dynamic>;
+
+  /// A lab panel read back rather than fitted.
+  Map<String, dynamic> labReview(Map<String, Object?> request) =>
+      _call(_labReview, request) as Map<String, dynamic>;
+
+  /// Bust, underbust and the cup size they imply.
+  Map<String, dynamic> body(Map<String, Object?> request) =>
+      _call(_body, request) as Map<String, dynamic>;
 
   /// Several calls in one crossing of the FFI boundary. Failures are returned
   /// inline as envelopes rather than thrown, so one bad call cannot lose the

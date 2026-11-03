@@ -32,13 +32,15 @@ pub struct CurveStats {
     pub span_h: f64,
 }
 
-/// The three curves' statistics for one window.
+/// The four curves' statistics for one window.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SimulationStats {
     pub e2: Option<CurveStats>,
     pub t: Option<CurveStats>,
     pub cpa: Option<CurveStats>,
+    /// Canrenone, the active metabolite of spironolactone.
+    pub spiro: Option<CurveStats>,
     pub window_start_h: f64,
     pub window_end_h: f64,
 }
@@ -164,8 +166,11 @@ pub fn clip(sim: &SimulationResult, from_h: f64, to_h: f64) -> SimulationResult 
         out.cpa_ng_ml
             .push(sim.cpa_ng_ml.get(i).copied().unwrap_or(0.0));
         out.t_ng_dl.push(sim.t_ng_dl.get(i).copied().unwrap_or(0.0));
+        out.spiro_ng_ml
+            .push(sim.spiro_ng_ml.get(i).copied().unwrap_or(0.0));
     }
     out.auc = trapezoid(&out.time_h, &out.e2_pg_ml);
+    out.spiro_auc = trapezoid(&out.time_h, &out.spiro_ng_ml);
     out
 }
 
@@ -191,11 +196,13 @@ pub fn simulation_stats(
     let e2 = curve_stats(&view.time_h, &view.e2_pg_ml, e2_range).filter(|s| s.peak > 1e-9);
     let t = curve_stats(&view.time_h, &view.t_ng_dl, t_range).filter(|s| s.peak > 1e-9);
     let cpa = curve_stats(&view.time_h, &view.cpa_ng_ml, None).filter(|s| s.peak > 1e-9);
+    let spiro = curve_stats(&view.time_h, &view.spiro_ng_ml, None).filter(|s| s.peak > 1e-9);
 
     SimulationStats {
         e2,
         t,
         cpa,
+        spiro,
         window_start_h: first,
         window_end_h: last,
     }

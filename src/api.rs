@@ -21,15 +21,21 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::analysis;
+use crate::blockade::{self, BlockadeInput};
+use crate::body::{self, BodyInput, CupSystem, Measurement};
+use crate::compare::{self, CompareArm, CompareInput};
 use crate::calibration::{calibrate, CalibrationInput};
 use crate::catalog;
+use crate::labsreview::{self, LabsInput};
 use crate::engine::{self, run_simulation_grid, SimGrid};
 use crate::model::*;
 use crate::planning::{self, Objective, Schedule};
+use crate::progress::{self, ProgressInput};
 use crate::reminders;
 use crate::safety::{self, SafetyInput};
 use crate::stats::{self, SimulationStats};
 use crate::units::{self, Analyte};
+use crate::whatif::{self, Scenario, WhatIfInput};
 
 pub const ABI_VERSION: i32 = 2;
 
@@ -717,6 +723,256 @@ fn handle_sensitivity(text: &str) -> Value {
     ok(json!(points))
 }
 
+fn handle_blockade(text: &str) -> Value {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct BlockadeRequest {
+        #[serde(default)]
+        events: Vec<DoseEvent>,
+        #[serde(default)]
+        body_weight_kg: f64,
+        #[serde(default)]
+        birth_year: Option<f64>,
+        #[serde(default)]
+        params: Option<PkParams>,
+        #[serde(default)]
+        now_h: f64,
+        #[serde(default)]
+        clearance_mult: Option<f64>,
+        #[serde(default)]
+        window_days: Option<f64>,
+    }
+
+    let req: BlockadeRequest = match parse(text) {
+        Ok(r) => r,
+        Err(e) => return e,
+    };
+    let params = req.params.unwrap_or_default().sanitized();
+    let report = blockade::assess(BlockadeInput {
+        events: &req.events,
+        params: &params,
+        weight: if req.body_weight_kg > 0.0 {
+            req.body_weight_kg
+        } else {
+            70.0
+        },
+        birth_year: req.birth_year,
+        now_h: req.now_h,
+        clearance_mult: req.clearance_mult.unwrap_or(1.0).clamp(0.1, 10.0),
+        window_days: req.window_days.unwrap_or(blockade::DEFAULT_WINDOW_DAYS),
+    });
+    ok(json!(report))
+}
+
+fn handle_progress(text: &str) -> Value {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct ProgressRequest {
+        #[serde(default)]
+        events: Vec<DoseEvent>,
+        #[serde(default)]
+        labs: Vec<LabResult>,
+        #[serde(default)]
+        body_weight_kg: f64,
+        #[serde(default)]
+        birth_year: Option<f64>,
+        #[serde(default)]
+        params: Option<PkParams>,
+        #[serde(default)]
+        now_h: f64,
+        #[serde(default)]
+        clearance_mult: Option<f64>,
+        #[serde(default)]
+        e2_target: Option<TargetRange>,
+        #[serde(default)]
+        t_target: Option<TargetRange>,
+    }
+
+    let req: ProgressRequest = match parse(text) {
+        Ok(r) => r,
+        Err(e) => return e,
+    };
+    let params = req.params.unwrap_or_default().sanitized();
+    let report = progress::assess(ProgressInput {
+        events: &req.events,
+        labs: &req.labs,
+        params: &params,
+        weight: if req.body_weight_kg > 0.0 {
+            req.body_weight_kg
+        } else {
+            70.0
+        },
+        birth_year: req.birth_year,
+        now_h: req.now_h,
+        clearance_mult: req.clearance_mult.unwrap_or(1.0).clamp(0.1, 10.0),
+        e2_target: req.e2_target,
+        t_target: req.t_target,
+    });
+    ok(json!(report))
+}
+
+fn handle_compare(text: &str) -> Value {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct CompareRequest {
+        #[serde(default)]
+        arms: Vec<CompareArm>,
+        #[serde(default)]
+        body_weight_kg: f64,
+        #[serde(default)]
+        birth_year: Option<f64>,
+        #[serde(default)]
+        params: Option<PkParams>,
+        #[serde(default)]
+        e2_target: Option<TargetRange>,
+        #[serde(default)]
+        t_target: Option<TargetRange>,
+        #[serde(default)]
+        max_cycles: Option<usize>,
+    }
+
+    let req: CompareRequest = match parse(text) {
+        Ok(r) => r,
+        Err(e) => return e,
+    };
+    if req.arms.is_empty() {
+        return err("badRequest", "compare needs at least one arm");
+    }
+    let params = req.params.unwrap_or_default().sanitized();
+    let report = compare::compare(CompareInput {
+        arms: req.arms,
+        weight: if req.body_weight_kg > 0.0 {
+            req.body_weight_kg
+        } else {
+            70.0
+        },
+        birth_year: req.birth_year,
+        params,
+        e2_target: req.e2_target,
+        t_target: req.t_target,
+        max_cycles: req.max_cycles.unwrap_or(128),
+    });
+    ok(json!(report))
+}
+
+fn handle_what_if(text: &str) -> Value {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct WhatIfRequest {
+        #[serde(default)]
+        events: Vec<DoseEvent>,
+        #[serde(default)]
+        body_weight_kg: f64,
+        #[serde(default)]
+        birth_year: Option<f64>,
+        #[serde(default)]
+        params: Option<PkParams>,
+        #[serde(default)]
+        now_h: f64,
+        #[serde(default)]
+        clearance_mult: Option<f64>,
+        #[serde(default)]
+        e2_target: Option<TargetRange>,
+        #[serde(default)]
+        t_target: Option<TargetRange>,
+        #[serde(default)]
+        analyte: Option<String>,
+        #[serde(default)]
+        horizon_h: Option<f64>,
+        #[serde(default)]
+        scenarios: Option<Vec<Scenario>>,
+    }
+
+    let req: WhatIfRequest = match parse(text) {
+        Ok(r) => r,
+        Err(e) => return e,
+    };
+    if req.events.is_empty() {
+        return err("badRequest", "whatIf needs at least one dose on record");
+    }
+    let params = req.params.unwrap_or_default().sanitized();
+    let report = whatif::what_if(WhatIfInput {
+        events: &req.events,
+        params: &params,
+        weight: if req.body_weight_kg > 0.0 {
+            req.body_weight_kg
+        } else {
+            70.0
+        },
+        birth_year: req.birth_year,
+        now_h: req.now_h,
+        clearance_mult: req.clearance_mult.unwrap_or(1.0).clamp(0.1, 10.0),
+        analyte: req.analyte.as_deref(),
+        horizon_h: req.horizon_h,
+        scenarios: req.scenarios.unwrap_or_else(whatif::default_scenarios),
+        e2_target: req.e2_target,
+        t_target: req.t_target,
+    });
+    ok(json!(report))
+}
+
+fn handle_lab_review(text: &str) -> Value {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct LabReviewRequest {
+        #[serde(default)]
+        labs: Vec<LabResult>,
+        #[serde(default)]
+        now_h: f64,
+        #[serde(default)]
+        e2_target: Option<TargetRange>,
+        #[serde(default)]
+        t_target: Option<TargetRange>,
+        #[serde(default)]
+        cadence_days: Option<f64>,
+    }
+
+    let req: LabReviewRequest = match parse(text) {
+        Ok(r) => r,
+        Err(e) => return e,
+    };
+    let report = labsreview::review(LabsInput {
+        labs: &req.labs,
+        now_h: req.now_h,
+        e2_target: req.e2_target,
+        t_target: req.t_target,
+        cadence_days: req.cadence_days,
+    });
+    ok(json!(report))
+}
+
+fn handle_body(text: &str) -> Value {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct BodyRequest {
+        #[serde(default)]
+        measurements: Vec<Measurement>,
+        #[serde(default)]
+        system: Option<String>,
+        #[serde(default)]
+        height_cm: Option<f64>,
+        #[serde(default)]
+        weight_kg: Option<f64>,
+    }
+
+    let req: BodyRequest = match parse(text) {
+        Ok(r) => r,
+        Err(e) => return e,
+    };
+    let report = body::assess(BodyInput {
+        measurements: &req.measurements,
+        system: Some(
+            req.system
+                .as_deref()
+                .and_then(CupSystem::parse)
+                .unwrap_or(CupSystem::Eu),
+        ),
+        height_cm: req.height_cm,
+        weight_kg: req.weight_kg,
+    });
+    ok(json!(report))
+}
+
 fn handle_batch(text: &str) -> Value {
     #[derive(Deserialize)]
     struct BatchRequest {
@@ -763,6 +1019,12 @@ fn dispatch(name: &str, input: &str) -> Value {
         "patches" => handle_patches(input),
         "safety" => handle_safety(input),
         "sensitivity" => handle_sensitivity(input),
+        "blockade" => handle_blockade(input),
+        "progress" => handle_progress(input),
+        "compare" => handle_compare(input),
+        "whatIf" => handle_what_if(input),
+        "labReview" => handle_lab_review(input),
+        "body" => handle_body(input),
         "batch" => handle_batch(input),
         "version" => ok(json!(env!("CARGO_PKG_VERSION"))),
         "capabilities" => ok(capabilities()),
@@ -802,6 +1064,18 @@ fn capabilities() -> Value {
              "input": ["events", "labs", "bodyWeightKg", "nowH", "e2Target", "tTarget", "params"]},
             {"name": "sensitivity", "summary": "How much the curve moves when clearance, weight or dose is off by a percentage.",
              "input": ["events", "parameter", "pct", "bodyWeightKg", "nowH", "startH", "endH"]},
+            {"name": "blockade", "summary": "Anti-androgen dose bands, coverage, modelled level and the next dose due.",
+             "input": ["events", "bodyWeightKg", "nowH", "windowDays", "birthYear", "params", "clearanceMult"]},
+            {"name": "progress", "summary": "Conservative testosterone suppression and treatment effectiveness over a day, a month and a year.",
+             "input": ["events", "labs", "bodyWeightKg", "nowH", "e2Target", "tTarget", "birthYear", "params", "clearanceMult"]},
+            {"name": "compare", "summary": "Several regimens settled side by side, with the steadiest, the highest and the cheapest called out.",
+             "input": ["arms", "bodyWeightKg", "birthYear", "params", "e2Target", "tTarget", "maxCycles"]},
+            {"name": "whatIf", "summary": "The record with one dose changed: skip, double, delay or stop, against the record as logged.",
+             "input": ["events", "bodyWeightKg", "nowH", "analyte", "horizonH", "scenarios", "e2Target", "tTarget", "birthYear", "params", "clearanceMult"]},
+            {"name": "labReview", "summary": "Read a lab panel back: in range, trend, and how overdue the next one is.",
+             "input": ["labs", "nowH", "e2Target", "tTarget", "cadenceDays"]},
+            {"name": "body", "summary": "Bust, underbust and the cup size they imply in each sizing system.",
+             "input": ["measurements", "system", "heightCm", "weightKg"]},
             {"name": "batch", "summary": "Several calls in one crossing of the FFI boundary.",
              "input": ["calls"]},
             {"name": "version", "summary": "Semantic version of the library.", "input": []},
@@ -892,6 +1166,30 @@ exported!(
 exported!(
     /// Parameter sensitivity of the curve.
     hrt_sensitivity => "sensitivity"
+);
+exported!(
+    /// Anti-androgen dose bands, coverage and the next dose due.
+    hrt_blockade => "blockade"
+);
+exported!(
+    /// Conservative suppression and effectiveness over day, month and year.
+    hrt_progress => "progress"
+);
+exported!(
+    /// Several regimens settled side by side.
+    hrt_compare => "compare"
+);
+exported!(
+    /// The record with one dose changed, against the record as logged.
+    hrt_what_if => "whatIf"
+);
+exported!(
+    /// Read a lab panel back: in range, moving, overdue.
+    hrt_lab_review => "labReview"
+);
+exported!(
+    /// Bust, underbust and the cup size they imply.
+    hrt_body => "body"
 );
 exported!(
     /// Several calls in one crossing.
@@ -1000,6 +1298,64 @@ mod tests {
         );
         let pmol = v["result"]["value"].as_f64().unwrap();
         assert!((pmol - 367.1).abs() < 0.2, "{pmol}");
+    }
+
+    #[test]
+    fn compare_settles_every_arm() {
+        let input = r#"{
+            "arms": [
+                {"label":"weekly","schedule":{"route":"injection","ester":"EV","doseMG":4,"intervalH":168}},
+                {"label":"daily","schedule":{"route":"oral","ester":"E2","doseMG":0.5,"intervalH":24}}
+            ],
+            "bodyWeightKg": 70, "e2Target": {"low":100,"high":200}
+        }"#;
+        let v = call("compare", input);
+        assert_eq!(v["ok"], json!(true));
+        let arms = v["result"]["arms"].as_array().unwrap();
+        assert_eq!(arms.len(), 2);
+        assert!(arms[0]["curve"]["peak"].as_f64().unwrap() > 0.0);
+        assert!(v["result"]["steadiest"].is_string());
+    }
+
+    #[test]
+    fn what_if_reports_a_delta_per_scenario() {
+        let input = r#"{
+            "events": [{"id":"a","route":"injection","timeH":0,"doseMG":4,"ester":"EV"},
+                       {"id":"b","route":"injection","timeH":168,"doseMG":4,"ester":"EV"}],
+            "bodyWeightKg": 70, "nowH": 100, "horizonH": 672,
+            "e2Target": {"low":100,"high":200}
+        }"#;
+        let v = call("whatIf", input);
+        assert_eq!(v["ok"], json!(true));
+        let rows = v["result"]["scenarios"].as_array().unwrap();
+        assert_eq!(rows[0]["id"], json!("baseline"));
+        assert_eq!(rows[0]["verdict"], json!("reference"));
+        assert!(rows.iter().any(|r| r["id"] == json!("skipNextDose")));
+    }
+
+    #[test]
+    fn lab_review_flags_an_out_of_range_value() {
+        let input = r#"{
+            "labs": [{"id":"a","timeH":4560,"concValue":320,"unit":"pg/ml"}],
+            "nowH": 4800, "e2Target": {"low":100,"high":200}
+        }"#;
+        let v = call("labReview", input);
+        assert_eq!(v["result"]["above"], json!(1));
+        assert_eq!(v["result"]["readings"][0]["status"], json!("above"));
+    }
+
+    #[test]
+    fn body_returns_a_label_per_system() {
+        let input = r#"{
+            "measurements": [{"timeH":0,"bustCm":91,"underbustCm":76}],
+            "system": "cn"
+        }"#;
+        let v = call("body", input);
+        assert_eq!(v["ok"], json!(true));
+        assert_eq!(v["result"]["system"], json!("cn"));
+        let sizes = v["result"]["sizes"].as_array().unwrap();
+        assert_eq!(sizes.len(), 4);
+        assert_eq!(sizes[0]["label"], json!("75C"));
     }
 
     #[test]

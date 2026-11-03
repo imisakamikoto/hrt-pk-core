@@ -215,12 +215,76 @@ allowed to drag the scale towards infinity.
   with `[low, high]` is computed exactly, so the answer does not change when the
   sample spacing does.
 - **fluctuation** — `(peak − trough) / trough`.
+- **conservative shares** — a share of a small sample is reported as the
+  one-sided 95% Wilson lower bound, not the raw share. One lab under the ceiling
+  is not 100% suppression. The bound shrinks towards the raw share as readings
+  accumulate, and there is no bound at all with none.
+- **effectiveness** — `min(modelled time in range, logged coverage)`. Two
+  independent failures (the plan does not sit in range; the plan is not taken)
+  are combined by taking the weaker, because either one alone defeats the
+  other.
 
 The default grid adds samples at 0.25, 0.5, 1, 2, 4, 6, 8, 12, 24 and 48 hours
 after every dose so a fast peak (sublingual, immediate-release oral) is not
 missed by a coarse uniform grid. A caller-supplied `stepH` replaces that grid.
 
-## 10. What is not modelled
+## 10. Anti-androgens and canrenone
+
+Spironolactone is modelled through its active metabolite, not as the parent
+drug. Absorption is about 65%, and roughly 80% of what is absorbed is converted
+by the liver to canrenone within hours; canrenone is what blocks the receptor
+and what the curve reports, in ng/mL.
+
+The chain is the same three steps as everything else:
+
+```
+gut ──spiro_k_abs──▶ spironolactone ──spiro_k_convert──▶ canrenone ──spiro_k_clear──▶ out
+```
+
+| Constant | Value | Where it comes from |
+|---|---|---|
+| `spiroFCanrenone` | 0.52 | 0.65 absorbed × 0.80 converted |
+| `spiroKAbs` | 1.386 /h | oral absorption, t½ ≈ 30 min |
+| `spiroKConvert` | 0.495 /h | hepatic conversion, t½ ≈ 1.4 h |
+| `spiroKClear` | 0.0365 /h | canrenone t½ ≈ 19 h |
+| `VD_PER_KG_SPIRO` | 2.8 L/kg | canrenone distribution |
+
+The 19 h half-life is the figure for once- or twice-daily dosing. Four times a
+day shortens it to about 12.5 h (9–16 h); `spiroKClear` is exposed as a
+parameter so a caller can set it rather than being locked to one regimen.
+
+**A level is not an effect.** Canrenone in the blood says the dose was taken and
+is being converted. It does not say how much androgen is blocked, and this model
+has no receptor occupancy to offer. That is why `hrt_blockade` reports a
+mechanism (`receptorBlockade`, `synthesisAndReceptor`, `gonadotropinSuppression`)
+alongside the level, and why `androgenSuppressionModelled` is always `false`.
+
+The mechanism distinction changes what a record means. Spironolactone and
+bicalutamide block the receptor and do not reliably lower testosterone at
+clinical doses — a review of 22 studies in men and 11 in trans women found no
+consistent fall, and where a fall appeared alongside estradiol it tracked the
+estradiol. Cyproterone and medroxyprogesterone suppress gonadotropins and do
+lower it. Reading a flat testosterone curve on a receptor blocker as a dosing
+failure is the mistake this distinction exists to prevent.
+
+## 11. Cup size and circumferences
+
+Not pharmacokinetics, but the same rule applies: report what was measured, and
+name the convention separately.
+
+- The measurement is `bust − underbust`. The letter is a convention applied to
+  it, and the convention is national: 2 cm steps in most of Europe, 2.5 cm in
+  China and Japan, one inch in the UK and US after the +4 band rule.
+- Band arithmetic is also national, and the +4 rule moves four inches of
+  difference out of the cup and into the band. The same body is not one size.
+- Growth is the slope of the difference, not of the bust. A tape that grows
+  everywhere changes no cup.
+- No volume is estimated. Millilitres need a shape assumption that varies more
+  between two people than between two cup sizes.
+- There is no target and no "normal" here. The engine reports; it does not
+  judge.
+
+## 12. What is not modelled
 
 Being explicit about this matters more than the equations above.
 
@@ -240,12 +304,18 @@ Being explicit about this matters more than the equations above.
 - **Unesterified testosterone cannot be injected** in this model — there is no
   parameter set for an aqueous or crystalline depot. The dose is accepted and
   contributes nothing; `hrt_safety` says so.
-- **Spironolactone, bicalutamide, MPA and GnRH analogues are not modelled.**
-  Doses are stored, no curve is produced.
+- **Bicalutamide, MPA, leuprorelin, triptorelin and raloxifene are not
+  modelled.** Doses are stored, no curve is produced, and `hrt_compare` reports
+  them with `notModelled` rather than inventing a level.
+- **Receptor occupancy.** Spironolactone and bicalutamide produce a canrenone
+  or parent-drug level; how much of the receptor that occupies is not computed,
+  here or anywhere else in this library.
+- **Breast volume.** Cup size is reported from circumferences; millilitres are
+  not estimated.
 - **Not a dosing recommendation.** `hrt_plan_dose` solves the model; it does not
   know the person, the indication, the interactions or the guidelines.
 
-## 11. Where the numbers come from
+## 13. Where the numbers come from
 
 The rate constants, fractions and bioavailabilities are a port of the model in
 [Oyama's HRT Tracker](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker),
@@ -254,7 +324,9 @@ transdermal gel, patches and cyproterone acetate. They are population values
 chosen to reproduce published curves, not fitted to any individual.
 
 The volumes of distribution (2 L/kg for estradiol, 1 L/kg for testosterone, 14
-L/kg for cyproterone) and the age slopes come from the same source.
+L/kg for cyproterone, 2.8 L/kg for canrenone) and the age slopes come from the
+same source, as do the spironolactone constants from the published absorption,
+conversion and half-life figures.
 
 If you change a constant, change it in `src/model.rs` (defaults) or
 `src/engine.rs` (rate constants), and add a test that pins the resulting curve

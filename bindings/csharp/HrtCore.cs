@@ -79,6 +79,18 @@ public sealed class HrtCore : IDisposable
 
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr hrt_sensitivity(IntPtr json);
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr hrt_blockade(IntPtr json);
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr hrt_progress(IntPtr json);
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr hrt_compare(IntPtr json);
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr hrt_what_if(IntPtr json);
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr hrt_lab_review(IntPtr json);
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr hrt_body(IntPtr json);
 
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr hrt_batch(IntPtr json);
@@ -162,6 +174,18 @@ public sealed class HrtCore : IDisposable
     public JsonNode? Safety(object request) => Call(hrt_safety, request);
 
     public JsonNode? Sensitivity(object request) => Call(hrt_sensitivity, request);
+    /// <summary>Anti-androgen dose bands, coverage and the next dose due.</summary>
+    public JsonNode? Blockade(object request) => Call(hrt_blockade, request);
+    /// <summary>Suppression and effectiveness over a day, a month and a year.</summary>
+    public JsonNode? Progress(object request) => Call(hrt_progress, request);
+    /// <summary>Up to six regimens, each read after it settles.</summary>
+    public JsonNode? Compare(object request) => Call(hrt_compare, request);
+    /// <summary>The record with one dose changed, against the record as logged.</summary>
+    public JsonNode? WhatIf(object request) => Call(hrt_what_if, request);
+    /// <summary>A lab panel read back rather than fitted.</summary>
+    public JsonNode? LabReview(object request) => Call(hrt_lab_review, request);
+    /// <summary>Bust, underbust and the cup size they imply.</summary>
+    public JsonNode? Body(object request) => Call(hrt_body, request);
 
     /// <summary>Several calls at once; individual failures stay inline.</summary>
     public JsonNode? Batch(object request) => Call(hrt_batch, request);

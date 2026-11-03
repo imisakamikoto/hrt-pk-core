@@ -75,11 +75,10 @@ fn routes_for(ester: Ester) -> Vec<&'static str> {
         Ester::EB | Ester::EC | Ester::EN | Ester::EU => vec!["injection"],
         Ester::EV => vec!["injection", "oral", "sublingual"],
         Ester::CPA => vec!["oral"],
+        Ester::SPIRO => vec!["oral"],
         Ester::T => vec!["gel", "patchApply"],
         Ester::TC | Ester::TE | Ester::TU => vec!["injection"],
-        Ester::SPIRO | Ester::BICA | Ester::MPA | Ester::LEUP | Ester::TRIP | Ester::RLX => {
-            Vec::new()
-        }
+        Ester::BICA | Ester::MPA | Ester::LEUP | Ester::TRIP | Ester::RLX => Vec::new(),
     }
 }
 
@@ -92,6 +91,7 @@ fn half_life_for(ester: Ester) -> Option<f64> {
         Ester::EN => 168.0,
         Ester::EU => 720.0,
         Ester::CPA => 43.9,
+        Ester::SPIRO => 19.0,
         Ester::T => 2.0,
         Ester::TC => 192.0,
         Ester::TE => 120.0,
@@ -110,7 +110,13 @@ fn note_for(ester: Ester) -> Option<&'static str> {
             "Unesterified testosterone. Only the gel and patch routes are \
              modelled; injectable testosterone needs an ester.",
         ),
-        Ester::SPIRO | Ester::BICA | Ester::MPA | Ester::LEUP | Ester::TRIP | Ester::RLX => Some(
+        Ester::SPIRO => Some(
+            "Reported as canrenone, the active metabolite: the parent drug is \
+             gone within hours while canrenone accumulates. Blocks the androgen \
+             receptor without lowering testosterone, so the curve shows that \
+             the drug is present, not how much androgen it is blocking.",
+        ),
+        Ester::BICA | Ester::MPA | Ester::LEUP | Ester::TRIP | Ester::RLX => Some(
             "Not modelled. The dose is still stored and shown, but no curve is \
              produced for it.",
         ),

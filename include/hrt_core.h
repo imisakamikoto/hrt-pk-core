@@ -46,7 +46,7 @@ extern "C" {
  * compiled against. */
 HRT_API int32_t hrt_abi_version(void);
 
-/* {"ok":true,"result":"2.0.0"} — release the string with hrt_free(). */
+/* {"ok":true,"result":"2.2.0"} — release the string with hrt_free(). */
 HRT_API char *hrt_version(void);
 
 /* Every function, with the fields it accepts, as JSON. */
@@ -126,6 +126,52 @@ HRT_API char *hrt_safety(const char *request_json);
 
 /* How far the curve moves when clearance, weight or dose is off by a percent. */
 HRT_API char *hrt_sensitivity(const char *request_json);
+
+/* Anti-androgen support: dose band, coverage, modelled level, next dose due.
+ * {"events":[…],"bodyWeightKg":70,"nowH":…,"windowDays":28}
+ * Each compound also says which mechanism it acts through and whether a fall
+ * in testosterone is expected from it; spironolactone and bicalutamide block
+ * the receptor and are not expected to lower it. */
+HRT_API char *hrt_blockade(const char *request_json);
+
+/* Conservative progress over a day, a month and a year.
+ * {"events":[…],"labs":[…],"bodyWeightKg":70,"nowH":…,"e2Target":{…}}
+ * Suppression is measured from labs and reported as a 95% lower bound;
+ * effectiveness is the weaker of modelled time-in-range and logged coverage. */
+HRT_API char *hrt_progress(const char *request_json);
+
+/* Several regimens settled side by side.
+ * {"arms":[{"label":"weekly","schedule":{"route":"injection","ester":"EV",
+ *           "doseMG":4,"intervalH":168}}, …],
+ *  "bodyWeightKg":70,"e2Target":{…},"tTarget":{…},"maxCycles":128}
+ * Each arm is read after it settles, in its own analyte's units, and the
+ * envelope names the steadiest, the highest and the cheapest per week.
+ * Compounds the model does not curve come back with "verdict":"notModelled"
+ * and no curve, so the dose can still be compared. */
+HRT_API char *hrt_compare(const char *request_json);
+
+/* The record with one dose changed, against the record as logged.
+ * {"events":[…],"nowH":…,"analyte":"e2","horizonH":672,
+ *  "scenarios":[{"kind":"skipNextDose"},{"kind":"delayNextDose","hours":12}]}
+ * Kinds: baseline, skipNextDose, doubleNextDose, halveNextDose,
+ * delayNextDose{hours}, stopFor{hours}. Nothing at or before nowH is changed;
+ * every row is read over the same window and reported as a percentage delta. */
+HRT_API char *hrt_what_if(const char *request_json);
+
+/* Read a lab panel back rather than fitting it.
+ * {"labs":[…],"nowH":…,"e2Target":{…},"tTarget":{…},"cadenceDays":90}
+ * Each reading is compared against the range for its own analyte and marked
+ * below, inRange, above or noTarget. Trends need two readings and 10% of
+ * movement; "cadence" is fresh, dueSoon, overdue or none. */
+HRT_API char *hrt_lab_review(const char *request_json);
+
+/* Bust, underbust and the cup size they imply.
+ * {"measurements":[{"timeH":…,"bustCm":91,"underbustCm":76}],
+ *  "system":"eu","heightCm":170,"weightKg":63}
+ * The difference between the two circumferences is the measurement; the letter
+ * is a convention, so every system is returned (eu, cn, uk, us). Growth is the
+ * slope of the difference, not of the bust. No volume is estimated. */
+HRT_API char *hrt_body(const char *request_json);
 
 /* Several calls in one crossing of the FFI boundary.
  * {"calls":[{"function":"simulate","input":{…}}, …]} */
