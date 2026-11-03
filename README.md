@@ -25,7 +25,7 @@ symbols are plain C, so anything with an FFI can call it.
 └─────────────┘   JSON    └──────────────────────────────────────────┘
 ```
 
-- **ABI 2**, library version `2.2.0`, 25 exported functions.
+- **ABI 2**, library version `2.2.1`, 25 exported functions.
 - 1.5 MB–21 MB depending on the platform; no runtime dependencies beyond libc.
 - Deterministic: the same input gives the same output, on every platform.
 - Panics are caught at the boundary and returned as an error object.

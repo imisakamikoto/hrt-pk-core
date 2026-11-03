@@ -11,6 +11,26 @@ in `docs/DEVELOPING.md`.
      a notable change: a new or changed export, a change to the maths, a
      platform that starts or stops working — not a reformat. -->
 
+## 2.2.1 — 2026-11-03
+
+A payload fix and one arithmetic fix. `ABI_VERSION` stays at 2: no request
+changed shape, and the response fields are the ones the documentation already
+promised.
+
+### Fixed
+
+- **Milligram fields came out as `doseMg`, not `doseMG`.** `hrt_blockade`,
+  `hrt_supply`, `hrt_plan_dose` and `hrt_compare` serialised the unit in
+  camelCase while `docs/API.md` and every client spelled it in capitals. A
+  client reading the documented name got `null` and fell back to zero, so a
+  logged dose displayed as `0 mg`. The capitalised spelling is now what goes
+  out; `…Mg` is still accepted when parsing.
+- **`dailyMG` divided the window, not the record.** One 120 mg dose logged
+  today was reported as 4 mg a day, which put a normal dose below the
+  therapeutic band. The divisor is now the days the record actually covers —
+  from the first in-window dose to now, floored at one day and capped at
+  `windowDays`. Coverage already reports how empty the window is.
+
 ## 2.2.0 — 2026-11-03
 
 Four new entry points, all additive: `ABI_VERSION` stays at 2 because no

@@ -435,7 +435,7 @@ Everything the engine accepts, as data. No request fields.
 
 ```json
 {
-  "version": "2.2.0", "abi": 2,
+  "version": "2.2.1", "abi": 2,
   "esters": [{"code":"EV","name":"Estradiol valerate","molecularWeight":356.5,
               "activeFactor":0.764,"hormone":"e2","modelled":true,
               "routes":["injection","oral","sublingual"],
@@ -582,6 +582,14 @@ total against per-compound bands (spironolactone 50/200/400, cyproterone
 12.5/50/100, bicalutamide 25/50/150, medroxyprogesterone 2.5/10/20). `verdict`
 adds the reasons a band alone cannot express: `coverage` when under 80% of the
 window was logged, `nothingLogged` when there is no history at all.
+
+`dailyMG` is the dose in the window divided by the days the record actually
+covers — the span from the first in-window dose to now, at least one day and at
+most `windowDays`. A single 120 mg dose logged today is 120 mg/day, not
+120/28: how completely the window is filled is `coveragePct`'s job, and dividing
+by a window that is mostly empty made a normal dose read as a sub-threshold one.
+Field names spell the unit in capitals (`doseMG`, `dailyMG`, `bandLowMG`); the
+`…Mg` spellings are accepted when parsing but never emitted.
 
 `mechanism` and `expectsTestosteroneFall` are the two fields a caller should
 read before drawing any conclusion. Spironolactone and bicalutamide block the
@@ -811,8 +819,8 @@ not cancel the rest.
 | Function | Result |
 |---|---|
 | `hrt_abi_version()` | `2` (no argument) |
-| `hrt_version()` | `{"ok":true,"result":"2.2.0"}` |
-| `hrt_capabilities()` | `{"ok":true,"result":{"abi":2,"version":"2.2.0","functions":[…]}}` |
+| `hrt_version()` | `{"ok":true,"result":"2.2.1"}` |
+| `hrt_capabilities()` | `{"ok":true,"result":{"abi":2,"version":"2.2.1","functions":[…]}}` |
 | `hrt_free(char *)` | nothing; releases a returned string |
 
 ---

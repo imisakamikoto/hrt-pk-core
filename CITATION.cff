@@ -19,7 +19,7 @@ authors:
 repository-code: "https://github.com/imisakamikoto/hrt-pk-core"
 url: "https://github.com/imisakamikoto/hrt-pk-core"
 license: MIT
-version: 2.2.0
+version: 2.2.1
 date-released: 2026-11-02
 keywords:
   - pharmacokinetics
