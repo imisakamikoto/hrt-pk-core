@@ -282,7 +282,12 @@ pub fn what_if(input: WhatIfInput) -> WhatIfReport {
             input.clearance_mult,
             &grid,
         )?;
-        let stats = simulation_stats(&sim, Some((start, start + horizon)), input.e2_target, input.t_target);
+        let stats = simulation_stats(
+            &sim,
+            Some((start, start + horizon)),
+            input.e2_target,
+            input.t_target,
+        );
         curve_for(&stats, analyte)
     };
 
@@ -298,12 +303,7 @@ pub fn what_if(input: WhatIfInput) -> WhatIfReport {
             let verdict = if matches!(scenario, Scenario::Baseline) {
                 "reference"
             } else {
-                verdict_for(
-                    changes > 0,
-                    base_curve.as_ref(),
-                    curve.as_ref(),
-                    target,
-                )
+                verdict_for(changes > 0, base_curve.as_ref(), curve.as_ref(), target)
             };
             ScenarioReport {
                 id: scenario.code(),
@@ -384,7 +384,12 @@ mod tests {
         assert!(skip.applied);
         assert_eq!(skip.changes, 1);
         let curve = skip.curve.as_ref().expect("skip curve");
-        assert!(curve.trough < base.trough, "{} vs {}", curve.trough, base.trough);
+        assert!(
+            curve.trough < base.trough,
+            "{} vs {}",
+            curve.trough,
+            base.trough
+        );
         assert!(skip.trough_delta_pct.expect("delta") < 0.0);
     }
 
@@ -424,6 +429,8 @@ mod tests {
         // The first four doses (t = 0, 168, 336, 504) are all at or before now,
         // so only the dose at 672 is dropped.
         assert_eq!(after.len(), 5);
-        assert!(after.iter().all(|e| e.time_h <= 168.0 * 3.0 + 12.0 || e.time_h > 672.0));
+        assert!(after
+            .iter()
+            .all(|e| e.time_h <= 168.0 * 3.0 + 12.0 || e.time_h > 672.0));
     }
 }

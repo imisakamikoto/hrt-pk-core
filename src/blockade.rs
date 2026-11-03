@@ -262,7 +262,11 @@ pub fn assess(input: BlockadeInput<'_>) -> BlockadeReport {
     // One simulation covers every compound that has a curve.
     let sim = run_simulation_grid(
         input.events,
-        if input.weight > 0.0 { input.weight } else { 70.0 },
+        if input.weight > 0.0 {
+            input.weight
+        } else {
+            70.0
+        },
         input.birth_year,
         input.params,
         input.now_h,
@@ -359,10 +363,7 @@ pub fn assess(input: BlockadeInput<'_>) -> BlockadeReport {
             ));
         }
         if overdue > 0.0 {
-            notes.push(format!(
-                "The next dose was due {:.0} h ago.",
-                overdue
-            ));
+            notes.push(format!("The next dose was due {:.0} h ago.", overdue));
         }
         if ester == Ester::SPIRO {
             notes.push(

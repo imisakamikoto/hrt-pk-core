@@ -148,7 +148,11 @@ fn window(label: &'static str, hours: f64, input: &ProgressInput<'_>) -> WindowP
     // Time in range, from the model, over exactly this window.
     let sim = run_simulation_grid(
         input.events,
-        if input.weight > 0.0 { input.weight } else { 70.0 },
+        if input.weight > 0.0 {
+            input.weight
+        } else {
+            70.0
+        },
         input.birth_year,
         input.params,
         input.now_h,
@@ -203,8 +207,7 @@ fn window(label: &'static str, hours: f64, input: &ProgressInput<'_>) -> WindowP
         e2_mean_pg_ml: mean(&e2_values),
         t_below_ceiling: t_below,
         t_ceiling_ng_dl: T_CEILING_NG_DL,
-        t_suppression_pct: wilson_lower(t_below, t_values.len(), Z_ONE_SIDED)
-            .map(|v| v * 100.0),
+        t_suppression_pct: wilson_lower(t_below, t_values.len(), Z_ONE_SIDED).map(|v| v * 100.0),
         time_in_range_pct: time_in_range,
         coverage_pct: coverage,
         effectiveness_pct: effectiveness,

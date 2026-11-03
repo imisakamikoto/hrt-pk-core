@@ -186,7 +186,12 @@ pub fn compare(input: CompareInput) -> CompareReport {
         };
 
         let (stable, cycles, accumulation_ratio, curve) = match (&report, analyte) {
-            (Some(r), Some(a)) => (r.stable, r.cycles, r.accumulation_ratio, curve_for(&r.cycle, a)),
+            (Some(r), Some(a)) => (
+                r.stable,
+                r.cycles,
+                r.accumulation_ratio,
+                curve_for(&r.cycle, a),
+            ),
             _ => (false, 0, 0.0, None),
         };
 
@@ -227,8 +232,16 @@ pub fn compare(input: CompareInput) -> CompareReport {
         .iter()
         .filter(|a| a.stable)
         .min_by(|a, b| {
-            let fa = a.curve.as_ref().map(|c| c.fluctuation_pct).unwrap_or(f64::MAX);
-            let fb = b.curve.as_ref().map(|c| c.fluctuation_pct).unwrap_or(f64::MAX);
+            let fa = a
+                .curve
+                .as_ref()
+                .map(|c| c.fluctuation_pct)
+                .unwrap_or(f64::MAX);
+            let fb = b
+                .curve
+                .as_ref()
+                .map(|c| c.fluctuation_pct)
+                .unwrap_or(f64::MAX);
             fa.partial_cmp(&fb).unwrap_or(std::cmp::Ordering::Equal)
         })
         .map(|a| a.label.clone());

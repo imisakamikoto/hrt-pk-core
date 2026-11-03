@@ -167,10 +167,7 @@ fn letter(index: i32) -> &'static str {
     if index < 0 {
         return "AA";
     }
-    LETTERS
-        .get(index as usize)
-        .copied()
-        .unwrap_or("H+")
+    LETTERS.get(index as usize).copied().unwrap_or("H+")
 }
 
 /// Round to the nearest multiple of `step`.
@@ -209,7 +206,11 @@ pub fn size_for(difference_cm: f64, underbust_cm: f64, system: CupSystem) -> Cup
             // The +4 rule: measure snug in inches, add four when even, five
             // when odd, then snap up to the next even number.
             let snug = snap(cm_to_in(underbust_cm), 1.0);
-            let plus = if (snug as i64) % 2 == 0 { snug + 4.0 } else { snug + 5.0 };
+            let plus = if (snug as i64) % 2 == 0 {
+                snug + 4.0
+            } else {
+                snug + 5.0
+            };
             let band = plus.max(28.0);
             let index = (difference_in - (band - snug)).floor() as i32;
             (band, letter(index))
@@ -471,7 +472,11 @@ mod tests {
         );
         let growth = report.growth.as_ref().expect("growth");
         assert!((growth.change_cm - 2.0).abs() < 1e-9);
-        assert!((growth.rate_cm_per_month - 1.0).abs() < 0.05, "{}", growth.rate_cm_per_month);
+        assert!(
+            (growth.rate_cm_per_month - 1.0).abs() < 0.05,
+            "{}",
+            growth.rate_cm_per_month
+        );
         assert_eq!(growth.next_cup, Some("B"));
         assert!(growth.months_to_next_cup.expect("months") > 0.0);
     }
@@ -495,7 +500,10 @@ mod tests {
 
     #[test]
     fn a_flat_rate_does_not_project_a_date() {
-        let report = run(&[m(0.0, 85.0, 75.0), m(24.0 * 60.0, 85.0, 75.0)], CupSystem::Cn);
+        let report = run(
+            &[m(0.0, 85.0, 75.0), m(24.0 * 60.0, 85.0, 75.0)],
+            CupSystem::Cn,
+        );
         let growth = report.growth.as_ref().expect("growth");
         assert!(growth.months_to_next_cup.is_none());
         assert!((growth.change_cm).abs() < 1e-9);
